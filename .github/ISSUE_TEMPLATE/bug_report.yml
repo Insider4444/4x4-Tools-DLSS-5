@@ -1,0 +1,35 @@
+name: Bug report
+description: Report installation, compatibility or rendering problems.
+title: "[Bug]: "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include steps to reproduce and what you expected.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Plug-in release
+      placeholder: v1.0
+    validations:
+      required: true
+  - type: textarea
+    id: system
+    attributes:
+      label: System and application
+      description: GPU model, driver, Windows version, AE/Premiere version, project resolution and bit depth.
+    validations:
+      required: true
+  - type: textarea
+    id: settings
+    attributes:
+      label: Preset, settings and timing
+      description: Does it happen during setup, opening a project, preview or export? Does bypass help?
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log or error
+      description: Remove private paths and names. Do not attach credentials or personal projects.

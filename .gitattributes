@@ -1,0 +1,11 @@
+* text=auto eol=lf
+*.cpp text eol=lf
+*.h text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.ps1 text eol=crlf
+*.nsi text eol=crlf
+*.svg text eol=lf
+*.png binary
+*.ico binary
+*.bmp binary

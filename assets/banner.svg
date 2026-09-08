@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title desc">
+  <title id="title">4x4-Tools DLSS 5</title>
+  <desc id="desc">Neural enhancement. Creative control. For Adobe After Effects and Premiere Pro.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0c1422"/><stop offset="1" stop-color="#152e38"/></linearGradient>
+    <linearGradient id="accent" x2="1" y2="1"><stop stop-color="#62edcf"/><stop offset="1" stop-color="#318cae"/></linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="#8accd0" stroke-opacity=".06"/></pattern>
+  </defs>
+  <rect width="1280" height="360" rx="24" fill="url(#bg)"/>
+  <rect width="1280" height="360" rx="24" fill="url(#grid)"/>
+  <path d="M960 0L720 360M1160 0L920 360M1360 0L1120 360" stroke="#6ce8d1" stroke-opacity=".07" stroke-width="80"/>
+  <g transform="translate(76 86)" fill="url(#accent)">
+    <rect width="35" height="35" rx="7"/><rect x="45" width="35" height="35" rx="7"/><rect x="90" width="35" height="35" rx="7"/><rect x="135" width="35" height="35" rx="7" opacity=".42"/>
+    <rect y="45" width="35" height="35" rx="7"/><rect x="45" y="45" width="35" height="35" rx="7"/><rect x="90" y="45" width="35" height="35" rx="7"/><rect x="135" y="45" width="35" height="35" rx="7" opacity=".62"/>
+    <rect y="90" width="35" height="35" rx="7" opacity=".62"/><rect x="45" y="90" width="35" height="35" rx="7"/><rect x="90" y="90" width="35" height="35" rx="7"/><rect x="135" y="90" width="35" height="35" rx="7"/>
+    <rect y="135" width="35" height="35" rx="7" opacity=".42"/><rect x="45" y="135" width="35" height="35" rx="7"/><rect x="90" y="135" width="35" height="35" rx="7"/><rect x="135" y="135" width="35" height="35" rx="7"/>
+  </g>
+  <g font-family="Segoe UI, Helvetica, Arial, sans-serif">
+    <text x="298" y="99" fill="#7bddce" font-size="16" font-weight="600" letter-spacing="4">4x4-TOOLS / v1.0</text>
+    <text x="293" y="177" fill="#f0f8fb" font-size="72" font-weight="700" letter-spacing="-2">DLSS 5</text>
+    <text x="298" y="223" fill="#c9dadf" font-size="27">Neural enhancement. Creative control.</text>
+    <text x="299" y="270" fill="#8fa9b5" font-size="17">AFTER EFFECTS + PREMIERE PRO  /  WINDOWS x64</text>
+    <rect x="1056" y="72" width="148" height="34" rx="17" fill="#26464d"/>
+    <text x="1130" y="94" text-anchor="middle" fill="#8ee4d3" font-size="12" font-weight="600" letter-spacing="1">INDEPENDENT TOOL</text>
+  </g>
+</svg>

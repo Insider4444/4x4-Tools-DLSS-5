@@ -1,0 +1,7 @@
+Derived from SAOG0721/DaVinci-Resolve-DLSS5, MIT license.
+Commit a659e5c674388ea8026f4cf8df9f206826d12452.
+Changes: top-left Adobe image orientation; separate Adobe diagnostic directory;
+GPU readback mapping uses the allocated buffer length to exclude unallocated
+padding after the final row.
+This software contains source code provided by NVIDIA Corporation.
+NVIDIA SDK and separately supplied runtime retain their own licenses.

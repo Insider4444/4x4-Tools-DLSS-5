@@ -1,0 +1,23 @@
+name: Source checks
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  cpu-controls:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Configure without proprietary SDKs
+        run: cmake -S . -B build -A x64 -DBUILD_ADOBE_PLUGIN=OFF
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test finishing behavior
+        run: ctest --test-dir build -C Release --output-on-failure --no-tests=error
+      - name: Parse PowerShell scripts
+        shell: pwsh
+        run: |
+          Get-ChildItem scripts,installer,tests -Filter *.ps1 -Recurse | ForEach-Object {
+            $tokens=$null; $errors=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$tokens,[ref]$errors)
+            if ($errors) { throw ($errors | Out-String) }
+          }
