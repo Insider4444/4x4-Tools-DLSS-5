@@ -19,6 +19,7 @@ if (-not $CpuOnly -and (-not $AdobeSdk -or -not $NgxSdk -or -not $Runtime)) {
 }
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $buildDir = Join-Path $projectRoot 'build'
+if ($buildDir.Length -gt 130) { throw 'This folder path is too long for MSVC tracking files. Extract/clone the project into a shorter path such as C:\Dev\4x4Tools-DLSS5, then run setup-dev.ps1 again.' }
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
 if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Visual Studio C++ Build Tools are required.' }
 $vs = @(& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -format json | ConvertFrom-Json)[0]

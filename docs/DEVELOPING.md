@@ -6,7 +6,7 @@ Adobe/NVIDIA development SDKs are kept in the owner's separate **private** build
 
 ## Move to another PC
 
-Extract your private developer kit and open PowerShell in `4x4Tools-DLSS5-developer`.
+Extract your private developer kit into a short path (for example `C:\Dev`) and open PowerShell in `4x4Tools-DLSS5-developer`. Deeply nested paths can exceed MSVC's file-tracking limit; the build script diagnoses this before compiling.
 
 Install Windows x64, Git, Visual Studio 2022/2026 Build Tools with Desktop development with C++, CMake tools and a Windows SDK. Adobe applications and a compatible NVIDIA GPU/driver are needed for full local testing. The kit includes local Adobe/NVIDIA SDKs, runtime and NSIS; it does not include the Microsoft compiler or Adobe applications.
 

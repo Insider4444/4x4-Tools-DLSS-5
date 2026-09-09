@@ -42,7 +42,8 @@ SDK/runtime terms remain separate from the source MIT license.
 No GitHub token, account, machine Git config, footage or project is included.
 
 On another Windows x64 PC:
-1. Extract to a normal writable folder (not Program Files or Adobe MediaCore).
+1. Extract to a short writable path, such as C:\Dev (not Program Files or
+   Adobe MediaCore). Deeply nested paths can exceed MSVC's path limit.
 2. Install Git and Visual Studio 2022/2026 Build Tools: Desktop development
    with C++, CMake tools and a Windows SDK. Install GitHub CLI for publishing.
 3. Open PowerShell in this folder and run .\setup-dev.ps1.
