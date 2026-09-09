@@ -47,6 +47,13 @@ elseif ($diff.Code -ne 0) { throw $diff.Error }
 $head=(Git @('rev-parse','HEAD')).Text.Trim()
 [void](Git @('push','origin','HEAD:main'))
 $published=if ($BuildOnly) { 'false' } else { 'true' }
+# A newly pushed workflow can take a few seconds to appear in GitHub's index.
+for ($attempt=0;$attempt -lt 15;$attempt++) {
+    $workflow=Gh @('api',('repos/'+$config.repository+'/actions/workflows/release.yml')) -AllowFailure
+    if ($workflow.Code -eq 0) { break }
+    if (($workflow.Error+$workflow.Text) -notmatch '404' -or $attempt -eq 14) { throw ($workflow.Error+$workflow.Text) }
+    Start-Sleep -Seconds 2
+}
 $before=[DateTime]::UtcNow.AddSeconds(-2)
 [void](Gh @('workflow','run','release.yml','--repo',$config.repository,'--ref','main','-f',('version='+$config.version),'-f',('expected_sha='+$head),'-f',('publish='+$published)))
 Write-Host ('GitHub is building commit '+$head+'. No local EXE or ZIP was uploaded.')
