@@ -47,8 +47,11 @@ foreach ($file in $manifest.files) {
     $fromExe=(Get-FileHash -LiteralPath (Join-Path $target $file.path)).Hash
     Assert ($fromZip -eq $file.sha256 -and $fromExe -eq $fromZip) ('EXE/ZIP payload mismatch: '+$file.path)
 }
-Assert ((Get-FileHash -LiteralPath (Join-Path $repo 'installer\installer-engine.ps1')).Hash -eq
-    (Get-FileHash -LiteralPath (Join-Path $maintenance 'installer-engine.ps1')).Hash) 'Compiled installer engine differs from source.'
+# Git checkout enforces CRLF for PS1 files; editor working files can use LF.
+# Compare exact script text after normalizing that checkout-only difference.
+$sourceEngine=[IO.File]::ReadAllText((Join-Path $repo 'installer\installer-engine.ps1')).Replace("`r`n","`n")
+$compiledEngine=[IO.File]::ReadAllText((Join-Path $maintenance 'installer-engine.ps1')).Replace("`r`n","`n")
+Assert ($sourceEngine -ceq $compiledEngine) 'Compiled installer engine differs from source.'
 Write-Host 'PASS every EXE and ZIP payload file has the same reviewed hash'
 Run-Exe (Join-Path $maintenance 'Uninstall.exe') ('/S '+$testArgument)
 # NSIS relocates its uninstaller to a temporary process so it can remove itself.
