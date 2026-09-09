@@ -4,9 +4,19 @@ param(
     [string]$AdobeSdk = $env:AE_SDK_BASE_PATH,
     [string]$NgxSdk = $env:DLSS_SDK_ROOT,
     [string]$Runtime = $env:DLSSNR_RUNTIME_DLL,
-    [switch]$CpuOnly
+    [switch]$CpuOnly,
+    [switch]$HostedCI
 )
 $ErrorActionPreference = 'Stop'
+if ($HostedCI -and $env:GITHUB_ACTIONS -ne 'true') { throw 'HostedCI is reserved for the GitHub build runner. Local release validation requires the actual GPU tests.' }
+. (Join-Path $PSScriptRoot 'common.ps1')
+$versionInfo=Sync-ReleaseVersion
+if (-not $CpuOnly -and (-not $AdobeSdk -or -not $NgxSdk -or -not $Runtime)) {
+    $settings=Read-BuildSettings
+    if (-not $AdobeSdk) { $AdobeSdk=$settings.AdobeSdk }
+    if (-not $NgxSdk) { $NgxSdk=$settings.NgxSdk }
+    if (-not $Runtime) { $Runtime=$settings.Runtime }
+}
 $projectRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $buildDir = Join-Path $projectRoot 'build'
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
@@ -35,6 +45,7 @@ function Run([string]$Executable, [string[]]$Arguments, [string]$Log) {
     }
     $start.EnvironmentVariables['Path']=$taskPath
     $start.EnvironmentVariables['LOCALAPPDATA']=Join-Path $buildDir 'test-data'
+    $start.EnvironmentVariables['TOOLS_DISABLE_UPDATE_CHECK']='1'
     $process=New-Object Diagnostics.Process; $process.StartInfo=$start
     try {
         [void]$process.Start()
@@ -55,5 +66,10 @@ else {
 }
 Run $cmake $config 'configure.log'
 Run $cmake @('--build',$buildDir,'--config','Release','--parallel') 'build.log'
-Run $ctest @('--test-dir',$buildDir,'-C','Release','--output-on-failure','--no-tests=error') 'tests.log'
+$testArgs=@('--test-dir',$buildDir,'-C','Release','--output-on-failure','--no-tests=error')
+if ($HostedCI) { $testArgs+=@('-E','adobe_neural_hardware|installer_gpu_preflight') }
+Run $ctest $testArgs 'tests.log'
 Write-Host 'Build and tests passed.'
+$binaries=@()
+if (-not $CpuOnly) { $binaries=@('4x4Tools-DLSS5.aex','SupportCheck.exe','UpdateCheck.exe','runtime/nvngx_dlssnr.dll' | ForEach-Object { @{path=$_;sha256=(Get-Sha (Join-Path (Join-Path $buildDir 'Release') $_))} }) }
+Write-JsonFile @{version=$versionInfo.Config.version;cpuOnly=[bool]$CpuOnly;hardwareValidated=(-not $HostedCI -and -not $CpuOnly);coreFingerprint=(Get-SourceFingerprint -CodeOnly);binaries=$binaries;created=(Get-Date -Format o)} (Join-Path $buildDir 'build-receipt.json')

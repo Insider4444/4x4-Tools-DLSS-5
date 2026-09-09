@@ -6,6 +6,8 @@
 /dependencies/*
 !/dependencies/README.md
 /.local/
+/repository.bundle
+/PRIVATE-DEVELOPER-KIT.txt
 *.aex
 *.dll
 *.exe

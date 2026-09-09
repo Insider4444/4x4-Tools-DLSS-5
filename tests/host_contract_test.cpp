@@ -3,11 +3,13 @@
 #include "AE_Effect.h"
 #include "AE_EffectCB.h"
 #include "AE_EffectCBSuites.h"
+#include "AE_EffectSuites.h"
 #include "AE_PluginData.h"
 #include "SPBasic.h"
 #include "effect_metadata.h"
 #include "neural_bridge.h"
 #include "parameters.h"
+#include "update_storage.h"
 #include <algorithm>
 using namespace adobe_dlss5;
 static PF_ParamDef registered[ParamCount]{};
@@ -61,7 +63,15 @@ static PF_Err CheckoutInput(PF_ProgPtr, A_long, PF_EffectWorld** result) { *resu
 static PF_Err CheckoutOutput(PF_ProgPtr, PF_EffectWorld** result) { *result = destWorld; return callbackError; }
 static PF_Err Checkin(PF_ProgPtr, A_long) { ++checkedIn; return 0; }
 static PF_WorldTransformSuite1 worldSuite{};
+static PF_ParamUtilsSuite3 paramSuite{};
+static PF_ParamDef lastStatus{};
+static int uiUpdates=0;
+static PF_Err UpdateParamUi(PF_ProgPtr, PF_ParamIndex index, const PF_ParamDef* def) {
+    if(index!=UpdateStatus)return 999;
+    lastStatus=*def;++uiUpdates;return 0;
+}
 static SPErr Acquire(const char* name, int32 version, const void** result) {
+    if(!std::strcmp(name,kPFParamUtilsSuite)&&version==kPFParamUtilsSuiteVersion3){*result=&paramSuite;return 0;}
     if (std::strcmp(name, kPFWorldTransformSuite) || version != kPFWorldTransformSuiteVersion1) return 999;
     *result = &worldSuite;
     return 0;
@@ -189,6 +199,21 @@ int main(int argc, char** argv) {
         basic.ReleaseSuite = Release;
         in.pica_basicP = &basic;
         worldSuite.copy = Copy;
+        paramSuite.PF_UpdateParamUI=UpdateParamUi;
+        updates::writeCache({static_cast<long long>(std::time(nullptr)),"65000.0.0"});
+        const auto originalParams=std::vector<PF_ParamDef>(std::begin(presetControls),std::end(presetControls));
+        out.out_flags=0;
+        require(effect(PF_Cmd_UPDATE_PARAMS_UI,&in,&out,presetParams,nullptr,nullptr)==0&&uiUpdates==1,
+            "Update status UI callback failed");
+        require(std::strstr(lastStatus.PF_DEF_NAME,"Update 65000.0.0 available")!=nullptr,"Newer stable version was not shown");
+        require(!std::memcmp(originalParams.data(),presetControls,sizeof(presetControls))&&!(out.out_flags&PF_OutFlag_FORCE_RERENDER),
+            "Cosmetic update check modified parameters or requested rendering");
+        changed.param_index=UpdateAction;presetControls[UpdateAction].u.pd.value=3;
+        require(effect(PF_Cmd_USER_CHANGED_PARAM,&in,&out,presetParams,nullptr,&changed)==0&&!updates::automaticEnabled(),"Automatic update opt-out failed");
+        require(presetControls[UpdateAction].u.pd.value==1&&!(out.out_flags&PF_OutFlag_FORCE_RERENDER),"Update action changed render state");
+        updates::setAutomatic(true);updates::writeCache({static_cast<long long>(std::time(nullptr)),"1.0.0"});
+        require(effect(PF_Cmd_UPDATE_PARAMS_UI,&in,&out,presetParams,nullptr,nullptr)==0&&
+            !std::strcmp(lastStatus.PF_DEF_NAME,"v" TOOLS_PRODUCT_VERSION),"Older release produced a false update notice");
         PF_SmartRenderCallbacks callbacks{};
         callbacks.checkout_layer_pixels = CheckoutInput;
         callbacks.checkout_output = CheckoutOutput;

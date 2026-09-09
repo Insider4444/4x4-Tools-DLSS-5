@@ -35,6 +35,12 @@ Automated integration scenarios use marked isolated directories and the real pay
 - A hung checker is terminated after 60 seconds; the existing install stays intact.
 - Uninstall removes owned unmodified files while retaining foreign/modified files and backups.
 
-The EXE and ZIP use the same payload and installer engine. Compiled-installer validation and isolated install/uninstall are performed before publication. Downloaded release assets are compared against local SHA-256 checksums.
+The EXE and ZIP use the same payload. The refreshed manual ZIP has no installer scripts; the EXE embeds its engine. Compiled-installer validation and isolated install/uninstall are performed before publication. Downloaded release assets are compared against local SHA-256 checksums.
 
 An optional CI template covers CPU finishing tests and PowerShell parsing without proprietary SDKs. It is included as `.github/ci-template.yml`; GitHub automation is not enabled in the initial release because the publishing credential lacks workflow permission. The validation reported above was run locally.
+
+## Development candidate 1.1.0 (2026-09-09)
+
+Six local suites passed, including actual NVIDIA rendering, update JSON/version policy, cache/offline behavior, and cosmetic Adobe UI updates without parameter changes or forced rendering. The compiled installer passed validation, install, EXE/ZIP payload equality and uninstall checks. This is development validation, not a new published stable release.
+
+The GitHub release workflow builds on a Windows hosted runner with pinned private SDK dependencies. It runs CPU/host/helper and packaging checks; GPU tests remain local because the hosted runner has no NVIDIA device. The deploy script requires a matching local debug-install receipt before requesting publication.

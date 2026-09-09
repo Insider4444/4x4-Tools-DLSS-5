@@ -10,7 +10,7 @@ enum Param { Input, Mode, View, Intensity, Style, Mix, Encoding, Processing, Loo
     RestoreGroup, ColorHold, ExposureHold, Highlights, Shadows, Texture, Detail,
     Radius, ArtifactGuard, RestoreEnd, FinishGroup, Saturation, Warmth, Tint,
     Exposure, FinishEnd, CompareGroup, Wipe, Region, CenterX, CenterY,
-    RegionWidth, RegionHeight, Feather, CompareEnd, ParamCount };
+    RegionWidth, RegionHeight, Feather, CompareEnd, UpdateStatus, UpdateAction, ParamCount };
 enum class Kind { Input, Popup, Integer, Float, Checkbox, Begin, End };
 struct ParamSpec {
     Kind kind; const char* name; float low=0, high=0, initial=0;
@@ -55,10 +55,12 @@ inline constexpr ParamSpec specs[ParamCount] = {
     {Kind::Float,"Region width",1,200,65,"",&Settings::regionWidth},
     {Kind::Float,"Region height",1,200,75,"",&Settings::regionHeight},
     {Kind::Float,"Region feather",0,100,30,"",&Settings::feather},
-    {Kind::End,""}
+    {Kind::End,""},
+    {Kind::Popup,"4x4Tools",1,1,1,"See Updates menu"},
+    {Kind::Popup,"Updates",1,5,1,"Options|Enable automatic checks|Disable automatic checks|Check now|Open release page"}
 };
 inline bool isValue(int i) {
-    return i>0 && i<ParamCount && i!=Processing &&
+    return i>0 && i<ParamCount && i!=Processing && i!=UpdateStatus && i!=UpdateAction &&
         specs[i].kind!=Kind::Begin && specs[i].kind!=Kind::End;
 }
 inline constexpr int ValueCount = 29;

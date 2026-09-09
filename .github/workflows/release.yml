@@ -1,0 +1,74 @@
+name: Build Windows release
+run-name: 4x4Tools-DLSS5-win v${{ inputs.version }} (publish=${{ inputs.publish }})
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version committed in release-config.json
+        type: string
+        required: true
+      expected_sha:
+        description: Full tested commit SHA on main
+        type: string
+        required: true
+      publish:
+        description: Publish the verified EXE and manual ZIP as a stable release
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: dlss5-windows-release
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Check out exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate source selection
+        run: |
+          . ./scripts/common.ps1
+          $config=Read-ReleaseConfig
+          if ($env:EXPECTED_SHA -notmatch '^[a-f0-9]{40}$' -or $env:GITHUB_SHA -ne $env:EXPECTED_SHA -or $config.version -ne $env:RELEASE_VERSION) { throw 'The selected version/commit is no longer main. Dispatch the tested commit again.' }
+          if ($config.repository -ne $env:GITHUB_REPOSITORY) { throw 'Repository configuration mismatch.' }
+          [void](Get-PublicFiles)
+      - name: Read private SDK dependencies
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Insider4444/4x4-Tools-DLSS-5-build-dependencies
+          ref: c2464b7cf5ee285c9f1b21a765f975a15c5fc9e5
+          ssh-key: ${{ secrets.SDK_DEPLOY_KEY }}
+          persist-credentials: false
+          path: .local/ci-sdk
+      - name: Build, test and package
+        id: build
+        run: ./scripts/build-ci.ps1
+      - name: Keep installable build artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: 4x4Tools-DLSS5-win-v${{ inputs.version }}
+          path: |
+            ${{ steps.build.outputs.release_dir }}/*.exe
+            ${{ steps.build.outputs.release_dir }}/*.zip
+            ${{ steps.build.outputs.release_dir }}/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Publish checked release
+        if: inputs.publish
+        run: ./scripts/publish-ci.ps1

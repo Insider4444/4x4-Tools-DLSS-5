@@ -1,7 +1,8 @@
 #include <windows.h>
+#include "version.h"
 1 VERSIONINFO
- FILEVERSION 1,0,0,0
- PRODUCTVERSION 1,0,0,0
+ FILEVERSION TOOLS_PE_VERSION
+ PRODUCTVERSION TOOLS_PE_VERSION
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0
  FILEOS VOS_NT_WINDOWS32
@@ -17,9 +18,9 @@ BEGIN
   BEGIN
    VALUE "CompanyName", "4x4-Tools\0"
    VALUE "FileDescription", "4x4-Tools DLSS 5 neural video enhancement\0"
-   VALUE "FileVersion", "1.0.0\0"
+   VALUE "FileVersion", TOOLS_PRODUCT_VERSION "\0"
    VALUE "ProductName", "4x4-Tools DLSS 5\0"
-   VALUE "ProductVersion", "1.0.0\0"
+   VALUE "ProductVersion", TOOLS_PRODUCT_VERSION "\0"
    VALUE "LegalCopyright", "Copyright (c) 2026 4x4-Tools and contributors\0"
   END
  END

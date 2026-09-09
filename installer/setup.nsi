@@ -9,6 +9,9 @@ Unicode true
 !ifndef OUTPUT
  !error "Provide /DOUTPUT=absolute-output-exe"
 !endif
+!ifndef VERSION
+ !error "Provide /DVERSION=major.minor.patch"
+!endif
 Name "4x4-Tools DLSS 5"
 OutFile "${OUTPUT}"
 InstallDir "$PROGRAMFILES64\4x4-Tools\DLSS-5"
@@ -18,14 +21,14 @@ SetCompressorDictSize 64
 ShowInstDetails show
 ShowUninstDetails show
 ManifestDPIAware true
-VIProductVersion "1.0.0.0"
+VIProductVersion "${VERSION}.0"
 VIAddVersionKey /LANG=1033 "ProductName" "4x4-Tools DLSS 5"
 VIAddVersionKey /LANG=1033 "CompanyName" "4x4-Tools"
 VIAddVersionKey /LANG=1033 "FileDescription" "4x4-Tools DLSS 5 Setup"
-VIAddVersionKey /LANG=1033 "FileVersion" "1.0.0"
-VIAddVersionKey /LANG=1033 "ProductVersion" "1.0.0"
+VIAddVersionKey /LANG=1033 "FileVersion" "${VERSION}"
+VIAddVersionKey /LANG=1033 "ProductVersion" "${VERSION}"
 VIAddVersionKey /LANG=1033 "LegalCopyright" "Copyright 2026 4x4-Tools and contributors"
-BrandingText "4x4-Tools | v1.0"
+BrandingText "4x4Tools-DLSS5-win | v${VERSION}"
 !define MUI_ICON "..\assets\app.ico"
 !define MUI_UNICON "..\assets\app.ico"
 !define MUI_WELCOMEFINISHPAGE_BITMAP "..\assets\installer-welcome.bmp"

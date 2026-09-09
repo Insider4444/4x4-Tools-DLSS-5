@@ -11,21 +11,27 @@ The repository deliberately contains no proprietary SDK development files. Put d
 
 ## Full build
 
-From the repository root in Windows PowerShell:
+For portable development and cloud release builds, start with [DEVELOPING.md](DEVELOPING.md). Configure local dependencies once:
+
+```powershell
+.\setup-dev.ps1 -AdobeSdk 'D:\SDKs\AfterEffects\Examples' -NgxSdk 'D:\SDKs\DLSS' -Runtime 'D:\Models\nvngx_dlssnr.dll' -MakeNsis 'D:\BuildTools\nsis-3.12\makensis.exe'
+```
+
+Then build from the repository root:
 
 ```powershell
 .\scripts\build.ps1 -AdobeSdk 'D:\SDKs\AfterEffects\Examples' -NgxSdk 'D:\SDKs\DLSS' -Runtime 'D:\Models\nvngx_dlssnr.dll'
 ```
 
-Environment alternatives: `AE_SDK_BASE_PATH`, `DLSS_SDK_ROOT`, `DLSSNR_RUNTIME_DLL`. The script discovers MSVC/CMake, builds Release with the static C++ runtime and runs four test suites. Output is `build/Release`; logs are `build/*.log`. Full tests require native access to the NVIDIA driver. A restricted process sandbox can make GPU initialization or teardown stall; it is not a substitute for a normal Windows hardware run.
+Environment alternatives: `AE_SDK_BASE_PATH`, `DLSS_SDK_ROOT`, `DLSSNR_RUNTIME_DLL`. The script discovers MSVC/CMake, builds Release with the static C++ runtime and runs six test suites. Output is `build/Release`; logs are `build/*.log`. Full tests require native access to the NVIDIA driver. A restricted process sandbox can make GPU initialization or teardown stall; it is not a substitute for a normal Windows hardware run.
 
-To run only the CPU controls tests without proprietary SDKs or NVIDIA hardware:
+To run only the CPU controls and update-policy tests without proprietary SDKs or NVIDIA hardware:
 
 ```powershell
 .\scripts\build.ps1 -CpuOnly
 ```
 
-Or configure CMake with `-DBUILD_ADOBE_PLUGIN=OFF`. The optional `.github/ci-template.yml` configuration covers the CPU path and script parsing; it does not test Adobe or NVIDIA hardware. To enable GitHub Actions, an account/token with workflow publishing permission can place the template at `.github/workflows/ci.yml`. Automation is not enabled by the initial release.
+Or configure CMake with `-DBUILD_ADOBE_PLUGIN=OFF`. The optional `.github/ci-template.yml` configuration covers the CPU path and script parsing; it does not test Adobe or NVIDIA hardware. To enable GitHub Actions, an account/token with workflow publishing permission can place the template at `.github/workflows/ci.yml`. The separate release.yml workflow is enabled for explicit release builds through deploy-main.ps1. See DEVELOPING.md.
 
 ## Installer and ZIP
 
@@ -49,4 +55,4 @@ Keep application projects, footage, diagnostics, build outputs and downloaded ru
 
 ## Versioning
 
-Public version, installer, manifest and Windows file resources are 1.0.0; release tag is `v1.0`. Adobe's `PF_VERSION`/PiPL counter is 1.3.0 to follow private 1.1/1.2 builds. Keep the counter monotonic and preserve parameter disk IDs when updating existing projects.
+Edit release-config.json for the public version; scripts synchronize installer, manifest and Windows resources. resources/version-state.json keeps Adobe compatibility monotonic after private development builds. See DEVELOPING.md. Preserve parameter disk IDs when updating existing projects.

@@ -3,6 +3,7 @@
 #include "AE_Effect.h"
 #include "AE_EffectCB.h"
 #include "AE_EffectCBSuites.h"
+#include "AE_EffectSuites.h"
 #include "AE_Macros.h"
 #include "Param_Utils.h"
 #include "entry.h"
@@ -10,6 +11,7 @@
 #include "effect_metadata.h"
 #include "neural_bridge.h"
 #include "parameters.h"
+#include "update_notice.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -18,8 +20,8 @@
 #include <new>
 using adobe_dlss5::Settings;
 using namespace adobe_dlss5;
-static_assert(TOOLS_VERSION == PF_VERSION(1, 3, 0, PF_Stage_RELEASE, 0));
-static_assert(TOOLS_FLAGS == PF_OutFlag_DEEP_COLOR_AWARE);
+static_assert(TOOLS_VERSION == PF_VERSION(TOOLS_ADOBE_MAJOR, TOOLS_ADOBE_MINOR, TOOLS_ADOBE_PATCH, PF_Stage_RELEASE, TOOLS_ADOBE_BUILD));
+static_assert(TOOLS_FLAGS == (PF_OutFlag_DEEP_COLOR_AWARE | PF_OutFlag_SEND_UPDATE_PARAMS_UI));
 // Frame state is local; one shared GPU session is serialized and reset per request.
 static_assert(TOOLS_FLAGS2 == (PF_OutFlag2_SUPPORTS_SMART_RENDER | PF_OutFlag2_FLOAT_COLOR_AWARE |
     PF_OutFlag2_SUPPORTS_THREADED_RENDERING | PF_OutFlag2_PARAM_GROUP_START_COLLAPSED_FLAG));
@@ -37,10 +39,14 @@ static PF_Err SetupParams(PF_InData* in_data, PF_OutData* out_data) {
         const auto& p=specs[i]; PF_ParamDef def{};
         if(p.inLook||i==Look)def.flags=PF_ParamFlag_SUPERVISE;
         if(i==Look)def.flags|=PF_ParamFlag_CANNOT_TIME_VARY;
-        if(i==Processing) {def.flags=PF_ParamFlag_CANNOT_TIME_VARY;def.ui_flags=PF_PUI_DISABLED;}
+        if(i==Processing||i==UpdateStatus) {def.flags=PF_ParamFlag_CANNOT_TIME_VARY;def.ui_flags=PF_PUI_DISABLED;}
+        if(i==UpdateAction)def.flags=PF_ParamFlag_CANNOT_TIME_VARY|PF_ParamFlag_SUPERVISE;
         const PF_ParamFlags parameterFlags=def.flags;
         switch(p.kind) {
-            case Kind::Popup: PF_ADD_POPUP(p.name,A_short(p.high),A_short(p.initial),p.choices,i);break;
+            case Kind::Popup: {
+                const auto status=i==UpdateStatus?updates::statusText():std::string(p.name);
+                PF_ADD_POPUP(status.c_str(),A_short(p.high),A_short(p.initial),p.choices,i);break;
+            }
             case Kind::Integer: PF_ADD_SLIDER(p.name,int(p.low),int(p.high),int(p.low),int(p.high),int(p.initial),i);break;
             case Kind::Float:
                 PF_ADD_FLOAT_SLIDERX(p.name,p.low,p.high,p.low,p.high,p.initial,
@@ -75,9 +81,36 @@ static void WriteSetting(PF_ParamDef& p,int i,float value) {
     }
     p.uu.change_flags|=PF_ChangeFlag_CHANGED_VALUE;
 }
-static PF_Err UserChanged(PF_OutData* out,PF_ParamDef* params[],PF_UserChangedParamExtra* extra) {
+static void UpdateUi(PF_InData* in,PF_ParamDef* params[],bool request=true) {
+    if(!in||!params||!params[UpdateStatus])return;
+    // UI selectors only. Never launch a process from global setup or render selectors.
+    if(request&&(in->appl_id=='FXTC'||in->appl_id=='PrMr'))updates::requestCheck();
+    if(!in->pica_basicP)return;
+    auto updated=*params[UpdateStatus];const auto text=updates::statusText();
+    std::snprintf(updated.PF_DEF_NAME,sizeof(updated.PF_DEF_NAME),"%s",text.c_str());
+    const PF_ParamUtilsSuite3* suite=nullptr;
+    if(!in->pica_basicP->AcquireSuite(kPFParamUtilsSuite,kPFParamUtilsSuiteVersion3,reinterpret_cast<const void**>(&suite))&&suite){
+        if(suite->PF_UpdateParamUI)suite->PF_UpdateParamUI(in->effect_ref,UpdateStatus,&updated);
+        in->pica_basicP->ReleaseSuite(kPFParamUtilsSuite,kPFParamUtilsSuiteVersion3);
+    }else{
+        const PF_ParamUtilsSuite1* older=nullptr;
+        if(!in->pica_basicP->AcquireSuite(kPFParamUtilsSuite,kPFParamUtilsSuiteVersion1,reinterpret_cast<const void**>(&older))&&older){
+            if(older->PF_UpdateParamUI)older->PF_UpdateParamUI(in->effect_ref,UpdateStatus,&updated);
+            in->pica_basicP->ReleaseSuite(kPFParamUtilsSuite,kPFParamUtilsSuiteVersion1);
+        }
+    }
+}
+static PF_Err UserChanged(PF_InData* in,PF_OutData* out,PF_ParamDef* params[],PF_UserChangedParamExtra* extra) {
     if(!out||!params||!extra||!params[Look])return PF_Err_BAD_CALLBACK_PARAM;
     const int changed=extra->param_index;
+    if(changed==UpdateAction&&params[UpdateAction]){
+        const auto action=params[UpdateAction]->u.pd.value;
+        if(action==2)updates::setEnabled(true);
+        if(action==3)updates::setEnabled(false);
+        if(action==4)updates::requestCheck(true);
+        if(action==5)updates::openReleasePage();
+        WriteSetting(*params[UpdateAction],UpdateAction,1);UpdateUi(in,params,action!=3);return PF_Err_NONE;
+    }
     if(changed==Look && params[Look]->u.pd.value>1) {
         const auto recipe=lookRecipe(params[Look]->u.pd.value);
         for(int i=1;i<ParamCount;++i)if(specs[i].inLook&&!params[i])return PF_Err_BAD_CALLBACK_PARAM;
@@ -237,7 +270,7 @@ extern "C" DllExport PF_Err EffectMain(PF_Cmd cmd, PF_InData* in_data,
         switch (cmd) {
             case PF_Cmd_ABOUT:
                 if (!out_data) return PF_Err_BAD_CALLBACK_PARAM;
-                std::strcpy(out_data->return_msg, "4x4-Tools DLSS 5 v1.0\rExperimental neural video enhancement.\r"
+                std::strcpy(out_data->return_msg, "4x4Tools-DLSS5-win v" TOOLS_PRODUCT_VERSION "\rExperimental neural video enhancement.\r"
                     "Three neural styles, eight footage recipes, natural restoration and selective blending.\r"
                     "Same resolution; RGBA8 proxy; history resets per frame.");
                 break;
@@ -255,7 +288,8 @@ extern "C" DllExport PF_Err EffectMain(PF_Cmd cmd, PF_InData* in_data,
                 break;
             case PF_Cmd_PARAMS_SETUP: return SetupParams(in_data, out_data);
             case PF_Cmd_USER_CHANGED_PARAM:
-                return UserChanged(out_data,params,static_cast<PF_UserChangedParamExtra*>(extra));
+                return UserChanged(in_data,out_data,params,static_cast<PF_UserChangedParamExtra*>(extra));
+            case PF_Cmd_UPDATE_PARAMS_UI: UpdateUi(in_data,params);break;
             case PF_Cmd_RENDER: {
                 if (!in_data || !params || !params[0] || !output) return PF_Err_BAD_CALLBACK_PARAM;
                 Settings s;

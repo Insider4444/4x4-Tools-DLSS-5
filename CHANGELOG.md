@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 — development candidate
+
+- Subtle update status, daily background checks, opt-out and manual release-page action.
+- Portable private developer kit and local debug-install workflow.
+- deploy-main.ps1 triggers a GitHub Actions build and publication from committed source.
+- Clean manual-install ZIP, tool-specific asset names and synchronized version configuration.
+
+
 ## v1.0 — 2026-09-08
 
 First public 4x4-Tools release for Adobe After Effects and Premiere Pro.

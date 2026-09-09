@@ -12,21 +12,16 @@ The shared plug-in is installed in:
 
 Maintenance files and the uninstaller are in `C:\Program Files\4x4-Tools\DLSS-5`. Setup creates **4x4-Tools DLSS 5** in Windows Installed apps. Reopen Adobe and search for **4x4Tools-DLSS5**. In AE it is under **Effect → 4x4Tools**; in Premiere search the Effects panel.
 
-## ZIP
+## ZIP (manual installation)
 
-Extract the complete ZIP into a local folder. Run the following from Windows PowerShell in that folder:
+Extract the ZIP and read README.txt. It contains one `4x4Tools-DLSS5` folder with the compiled effect, required runtime/helpers, licenses and controls guide. It has no source, SDKs or PowerShell build/install scripts.
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1
-```
+1. Save and close Adobe. Run `4x4Tools-DLSS5\SupportCheck.exe` in a terminal and continue only if it reports `ok: true`.
+2. Back up the previous exact plug-in folder outside Adobe's scan paths.
+3. Copy the complete `4x4Tools-DLSS5` folder to `C:\Program Files\Adobe\Common\Plug-ins\7.0\MediaCore`, accepting Windows elevation.
+4. Reopen Adobe and search for the effect. Keep the `runtime` subfolder intact; do not copy only the `.aex`.
 
-It requests administrator access and performs the same integrity/GPU checks and backup steps. To check the package and GPU without installing:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -ValidateOnly
-```
-
-Use `Uninstall.ps1` to remove a ZIP installation. Keep the extracted scripts together. Do not copy only the `.aex`: the private `runtime` directory and remaining package files are required. Do not place multiple versions of the `.aex` in Adobe's scanning folders.
+The EXE performs integrity checks and transaction rollback automatically. Manual copying does not create a Windows uninstall entry; remove only the exact plug-in folder after closing Adobe to undo a manual installation. Keep backups outside MediaCore to avoid duplicate effects.
 
 ## Updates and removal
 
@@ -53,3 +48,11 @@ To restore a backup manually, close Adobe, move the current exact 4x4Tools folde
 Setup logs: `C:\ProgramData\4x4-Tools\DLSS-5\Logs`. Validation-only and early setup failures: `%TEMP%\4x4-Tools-DLSS-5-Validation\Logs`. GPU-check details are stored with those logs. Plug-in diagnostics during Adobe use: `%LOCALAPPDATA%\AdobeDlss5\AdobeDlss5.log`.
 
 Logs are local. No support data is uploaded automatically. Before sharing, review paths and remove names or project details you consider private.
+
+## Subtle update notice (v1.1 and later)
+
+The small version row at the bottom of the effect controls changes to **Update X available** when a newer stable GitHub release is cached. Use **Updates** to enable or disable automatic checks, check now, or open the release page. Reopen or interact with the effect controls after a check to refresh the row. There are no dialogs or automatic installations.
+
+Checks use a separate helper process, at most once a day, started from effect UI callbacks. Rendering and Adobe start-up do not perform network requests. GitHub receives a normal HTTPS request (including the IP address and plug-in version in the user agent); no footage, project names, GPU details or account credentials are sent. Offline errors stay silent. Settings/cache are in %LOCALAPPDATA%\4x4Tools\Updates. Set the TOOLS_DISABLE_UPDATE_CHECK environment variable before starting Adobe to suppress all helper launches.
+
+Existing v1.0 binaries need an upgrade once to gain this feature. The current stable release remains v1.0 until a newer version is published.

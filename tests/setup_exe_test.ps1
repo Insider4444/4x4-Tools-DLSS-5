@@ -39,14 +39,16 @@ Assert (Test-Path -LiteralPath (Join-Path $target '4x4Tools-DLSS5.aex')) 'Compil
 Assert (Test-Path -LiteralPath (Join-Path $maintenance 'Uninstall.exe')) 'Uninstaller was not installed.'
 Write-Host 'PASS compiled EXE installs to a marked directory containing spaces'
 Expand-Archive -LiteralPath $Zip -DestinationPath $expanded
-$manifest=Get-Content -LiteralPath (Join-Path $expanded 'payload\install-manifest.json') -Raw | ConvertFrom-Json
+$manifest=Get-Content -LiteralPath (Join-Path $expanded '4x4Tools-DLSS5\install-manifest.json') -Raw | ConvertFrom-Json
+Assert (Test-Path -LiteralPath (Join-Path $expanded 'README.txt')) 'Manual installation README is missing.'
+Assert (@(Get-ChildItem -LiteralPath $expanded -Recurse -File | Where-Object { $_.Extension -match '^\.(ps1|cpp|h|lib|pdb)$' }).Count -eq 0) 'Development files leaked into the public ZIP.'
 foreach ($file in $manifest.files) {
-    $fromZip=(Get-FileHash -LiteralPath (Join-Path (Join-Path $expanded 'payload') $file.path)).Hash
+    $fromZip=(Get-FileHash -LiteralPath (Join-Path (Join-Path $expanded '4x4Tools-DLSS5') $file.path)).Hash
     $fromExe=(Get-FileHash -LiteralPath (Join-Path $target $file.path)).Hash
     Assert ($fromZip -eq $file.sha256 -and $fromExe -eq $fromZip) ('EXE/ZIP payload mismatch: '+$file.path)
 }
-Assert ((Get-FileHash -LiteralPath (Join-Path $expanded 'installer-engine.ps1')).Hash -eq
-    (Get-FileHash -LiteralPath (Join-Path $maintenance 'installer-engine.ps1')).Hash) 'EXE/ZIP installer engine differs.'
+Assert ((Get-FileHash -LiteralPath (Join-Path $repo 'installer\installer-engine.ps1')).Hash -eq
+    (Get-FileHash -LiteralPath (Join-Path $maintenance 'installer-engine.ps1')).Hash) 'Compiled installer engine differs from source.'
 Write-Host 'PASS every EXE and ZIP payload file has the same reviewed hash'
 Run-Exe (Join-Path $maintenance 'Uninstall.exe') ('/S '+$testArgument)
 # NSIS relocates its uninstaller to a temporary process so it can remove itself.

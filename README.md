@@ -13,8 +13,8 @@
 
 | Package | Choose this when… |
 | --- | --- |
-| **[Windows installer — EXE](https://github.com/Insider4444/4x4-Tools-DLSS-5/releases/download/v1.0/4x4-Tools-DLSS-5-v1.0-Setup.exe)** | You want guided setup and an entry in Windows Installed apps. Recommended. |
-| **[Full package — ZIP](https://github.com/Insider4444/4x4-Tools-DLSS-5/releases/download/v1.0/4x4-Tools-DLSS-5-v1.0-Windows-x64.zip)** | You prefer an extracted package with PowerShell install, validate and uninstall scripts. |
+| **[Windows installer — EXE](https://github.com/Insider4444/4x4-Tools-DLSS-5/releases/download/v1.0/4x4Tools-DLSS5-win-v1.0-Setup.exe)** | You want guided setup and an entry in Windows Installed apps. Recommended. |
+| **[Manual installation — ZIP](https://github.com/Insider4444/4x4-Tools-DLSS-5/releases/download/v1.0/4x4Tools-DLSS5-win-v1.0.zip)** | You prefer copying the plug-in folder manually; includes README.txt and required runtime files. |
 | [SHA-256 checksums](https://github.com/Insider4444/4x4-Tools-DLSS-5/releases/download/v1.0/SHA256SUMS.txt) | Verify the downloaded EXE or ZIP. |
 
 Both packages include the same plug-in and neural runtime. No separate model download or account is required. The installer is currently **unsigned**; Windows may display an unknown-publisher or SmartScreen prompt. Obtain releases from this repository and check the published checksum before running them.
@@ -58,6 +58,7 @@ Start with restrained intensity and preservation controls. Neutral finishing tak
 
 The repository includes the plug-in, finishing engine, installer, tests, documentation and packaging scripts. Proprietary Adobe/NVIDIA SDK development files are supplied locally and are **not** uploaded here. The runtime is distributed in release packages under its separate terms, not committed to Git.
 
+- [Develop, test and release](docs/DEVELOPING.md) — local debug install, GitHub Actions release builds and portable private kit.
 - [Build from source](docs/BUILDING.md)
 - [Validation record](docs/VALIDATION.md)
 - [Contributing](CONTRIBUTING.md) · [Report a bug](https://github.com/Insider4444/4x4-Tools-DLSS-5/issues/new?template=bug_report.yml)

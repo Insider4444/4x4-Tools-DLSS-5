@@ -10,7 +10,7 @@ $ErrorActionPreference='Stop'
 Set-StrictMode -Version 2
 $productId='4x4-Tools-DLSS-5'
 $registryKey='HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\4x4-Tools-DLSS-5'
-$allowed=@('4x4Tools-DLSS5.aex','SupportCheck.exe','runtime/nvngx_dlssnr.dll',
+$allowed=@('4x4Tools-DLSS5.aex','SupportCheck.exe','UpdateCheck.exe','runtime/nvngx_dlssnr.dll',
     'LICENSE.txt','THIRD-PARTY-NOTICES.txt','NVIDIA-RTX-SDK.txt','UPSTREAM-MIT.txt','CONTROLS.md')
 $session=(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[Guid]::NewGuid().ToString('N')
 $logPath=$null
@@ -69,7 +69,7 @@ function Read-Manifest([string]$Root,[bool]$VerifyFiles) {
     $file=Contained (Join-Path $Root 'install-manifest.json') $Root
     if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw 'The package manifest is missing. Download and extract the complete release.' }
     $manifest=Get-Content -LiteralPath $file -Raw | ConvertFrom-Json
-    if ($manifest.productId -ne $productId -or $manifest.schemaVersion -ne 1 -or $manifest.version -ne '1.0.0') { throw 'This is not a recognized 4x4-Tools v1.0 package.' }
+    if ($manifest.productId -ne $productId -or $manifest.schemaVersion -ne 1 -or $manifest.version -notmatch '^\d{1,5}\.\d{1,5}\.\d{1,5}$') { throw 'This is not a recognized 4x4Tools-DLSS5 package.' }
     $seen=@{}
     foreach ($record in @($manifest.files)) {
         $relative=[string]$record.path
@@ -83,7 +83,8 @@ function Read-Manifest([string]$Root,[bool]$VerifyFiles) {
             if ((Hash $path) -ne $record.sha256) { throw "Package integrity check failed: $relative. Download a fresh release; the existing installation was not changed." }
         }
     }
-    if ($seen.Count -ne $allowed.Count) { throw 'The installation manifest is incomplete.' }
+    $required=@($allowed | Where-Object { $_ -ne 'UpdateCheck.exe' -or [version]$manifest.version -ge [version]'1.1.0' })
+    foreach ($name in $required) { if (-not $seen.ContainsKey($name)) { throw 'The installation manifest is incomplete.' } }
     return $manifest
 }
 function Check-Gpu([string]$Root) {
@@ -131,7 +132,7 @@ function Install-Payload([string]$Source,$Manifest) {
     if (-not $SandboxRoot -and (Test-Path -LiteralPath $registryKey)) { $oldRegistry=Get-ItemProperty -LiteralPath $registryKey }
     New-Item -ItemType Directory -Force -Path $stage,(Join-Path $stage 'plugin'),(Join-Path $stage 'maintenance'),$backup | Out-Null
     try {
-        foreach ($relative in @($allowed)+@('install-manifest.json')) {
+        foreach ($relative in @($Manifest.files | ForEach-Object { $_.path })+@('install-manifest.json')) {
             $destination=Contained (Join-Path (Join-Path $stage 'plugin') $relative) $stage
             New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) | Out-Null
             Copy-Item -LiteralPath (Join-Path $Source $relative) -Destination $destination
@@ -164,14 +165,14 @@ function Install-Payload([string]$Source,$Manifest) {
             if (-not $MaintenanceDir) {
                 $uninstall='"'+(Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe')+'" -NoProfile -ExecutionPolicy Bypass -File "'+(Join-Path $maintenance 'installer-engine.ps1')+'" -Action Uninstall'
             }
-            foreach ($pair in @{DisplayName='4x4-Tools DLSS 5';DisplayVersion='1.0.0';Publisher='4x4-Tools';InstallLocation=$target;UninstallString=$uninstall;URLInfoAbout='https://github.com/Insider4444/4x4-Tools-DLSS-5'}.GetEnumerator()) {
+            foreach ($pair in @{DisplayName='4x4Tools-DLSS5';DisplayVersion=$Manifest.version;Publisher='4x4-Tools';InstallLocation=$target;UninstallString=$uninstall;URLInfoAbout='https://github.com/Insider4444/4x4-Tools-DLSS-5'}.GetEnumerator()) {
                 New-ItemProperty -LiteralPath $registryKey -Name $pair.Key -Value $pair.Value -PropertyType String -Force | Out-Null
             }
             New-ItemProperty -LiteralPath $registryKey -Name NoModify -Value 1 -PropertyType DWord -Force | Out-Null
             New-ItemProperty -LiteralPath $registryKey -Name NoRepair -Value 1 -PropertyType DWord -Force | Out-Null
             New-ItemProperty -LiteralPath $registryKey -Name EstimatedSize -Value 175000 -PropertyType DWord -Force | Out-Null
         }
-        Log ('Installed v1.0 into '+$target)
+        Log ('Installed v'+$Manifest.version+' into '+$target)
         if ($oldMoved -or $maintenanceMoved) { Log ('Previous installation preserved at '+$backup) }
     } catch {
         $cause=$_
@@ -245,7 +246,7 @@ try {
     $logDir=Join-Path $stateRoot 'Logs'; SafePath $logDir
     New-Item -ItemType Directory -Force -Path $logDir | Out-Null
     $logPath=Join-Path $logDir ($Action+'-'+$session+'.log')
-    Log ('4x4-Tools v1.0 '+$Action)
+    Log ('4x4Tools-DLSS5 '+$Action)
     if ($Action -eq 'Uninstall') { Uninstall-Payload }
     else {
         $PackageDir=Full $PackageDir; SafePath $PackageDir
