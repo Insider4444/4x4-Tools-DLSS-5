@@ -85,7 +85,7 @@ function Read-BuildSettings {
     $file=Join-Path $script:ProjectRoot '.local\build-settings.json'
     if (-not (Test-Path -LiteralPath $file)) { throw 'Run setup-dev.ps1 to configure the local SDK and installer-tool paths.' }
     $settings=Get-Content -LiteralPath $file -Raw -Encoding UTF8 | ConvertFrom-Json
-    foreach ($field in @('AdobeSdk','NgxSdk','Runtime','MakeNsis')) {
+    foreach ($field in @('AdobeSdk','PhotoshopSdk','Lcms','NgxSdk','Runtime','MakeNsis')) {
         $settings.$field=Get-LocalPath $settings.$field
         if (-not (Test-Path -LiteralPath $settings.$field)) { throw "Missing $field at $($settings.$field). Run setup-dev.ps1 with your local paths." }
     }
@@ -93,9 +93,11 @@ function Read-BuildSettings {
 }
 function Get-PublicFiles {
     $names=(Git @('ls-files','--cached','--others','--exclude-standard','-z')).Text.Split([char]0) | Where-Object { $_ }
-    $files=@($names | Sort-Object -Unique | Where-Object { Test-Path -LiteralPath (Join-Path $script:ProjectRoot $_) -PathType Leaf })
+    $unique=New-Object 'Collections.Generic.SortedSet[string]' ([StringComparer]::Ordinal)
+    foreach ($name in $names) { if (Test-Path -LiteralPath (Join-Path $script:ProjectRoot $name) -PathType Leaf) { [void]$unique.Add($name) } }
+    $files=@($unique)
     foreach ($file in $files) {
-        if ($file -ne 'dependencies/README.md' -and $file -match '(^|/)(\.local|dependencies|external|build[^/]*|artifacts|package|dist|diagnostics|\.git)/|(^|/)(\.env[^/]*|PRIVATE-DEVELOPER-KIT.txt|repository.bundle)$|\.(dll|aex|exe|lib|zip|bundle|pdb|aep|prproj|avi|mp4|mov)$') { throw "Private/build file is tracked in Git: $file. Remove it from the index before publishing." }
+        if ($file -ne 'dependencies/README.md' -and $file -match '(^|/)(\.local|dependencies|external|build[^/]*|artifacts|package|dist|diagnostics|\.git)/|(^|/)(\.env[^/]*|PRIVATE-DEVELOPER-KIT.txt|repository.bundle)$|\.(dll|aex|8bf|exe|lib|zip|bundle|pdb|aep|psd|psb|prproj|avi|mp4|mov)$') { throw "Private/build file is tracked in Git: $file. Remove it from the index before publishing." }
         $item=Get-Item -LiteralPath (Join-Path $script:ProjectRoot $file) -Force
         if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Linked source file cannot be packaged: $file" }
         if ($item.Length -gt 5MB) { throw "Unexpected large source file: $file" }
@@ -113,8 +115,8 @@ function Get-SourceFingerprint([switch]$CodeOnly) {
     Get-TextSha ($records -join "`n")
 }
 function Assert-AdobeClosed {
-    $apps=@(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '^(AfterFX|AfterFX\.com|aerender|aerendercore|Adobe Premiere Pro)$' })
-    if ($apps.Count) { throw 'Save and fully close After Effects, Premiere Pro and Adobe render processes before local installation.' }
+    $apps=@(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match '^(AfterFX|AfterFX\.com|aerender|aerendercore|Adobe Premiere Pro|Photoshop)$' })
+    if ($apps.Count) { throw 'Save and fully close After Effects, Premiere Pro, Photoshop and Adobe render processes before local installation.' }
 }
 function New-SourceZip([string]$Destination) {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -130,14 +132,19 @@ function Get-ManualReadme([string]$Version) {
     return @"
 4x4Tools-DLSS5-win v$Version - manual installation
 
-1. Save your projects and fully close After Effects and Premiere Pro.
+1. Save your work and fully close After Effects, Premiere Pro and Photoshop.
 2. Run 4x4Tools-DLSS5\SupportCheck.exe from a terminal to test your GPU.
    Continue only if the last line reports ok: true.
 3. Back up any existing 4x4Tools-DLSS5 folder OUTSIDE Adobe's plug-in folders.
-4. Copy the entire 4x4Tools-DLSS5 folder into:
+4. For After Effects and Premiere Pro, copy the entire 4x4Tools-DLSS5 folder into:
    C:\Program Files\Adobe\Common\Plug-ins\7.0\MediaCore\
+   For Photoshop, copy the same entire folder into:
+   C:\Program Files\Common Files\Adobe\Plug-Ins\CC\
    Accept the Windows administrator prompt. Keep the runtime subfolder intact.
-5. Reopen Adobe and search Effects for 4x4Tools-DLSS5.
+5. Reopen AE / Premiere and search Effects for 4x4Tools-DLSS5.
+   In Photoshop, open an RGB image, then Filter > 4x4Tools > DLSS5 - Image Enhancement.
+   Read PHOTOSHOP.md for high-resolution processing, RGB 8/16/32-bit support,
+   preview controls and temporary disk space requirements.
 
 Use the installer EXE from Releases if you prefer guided setup and rollback.
 This ZIP has only installed plug-in files, required helpers/runtime and documentation.
@@ -146,9 +153,10 @@ Manual installation does not create a Windows Apps uninstall entry.
 To remove a manual installation, close Adobe and remove only its 4x4Tools-DLSS5 folder.
 
 Requires Windows x64 and a compatible NVIDIA RTX GPU/driver. The GPU checker
-determines compatibility; support across all RTX 30/40/50 cards is not guaranteed.
-This is an experimental neural enhancement runtime, not NVIDIA's announced
-DLSS 5 neural-rendering product. No upscaling or frame generation is performed.
+determines compatibility with a real render; performance varies by GPU and image size.
+This independent suite adapts NVIDIA-based DLSS 5 neural rendering to image/video
+enhancement through a community runtime. It does not have a game's real motion or
+depth data. Image dimensions stay unchanged; there is no upscaling or frame generation.
 Read CONTROLS.md and the separate runtime license files inside the plug-in folder.
 Updates (v1.1+): a small status row shows newer stable releases. Use the Updates
 menu to check manually, disable automatic checks, or open the release page.
@@ -163,7 +171,7 @@ function New-ManualZip([string]$Payload,[string]$Destination,[string]$Version) {
     $zip=[IO.Compression.ZipFile]::Open($Destination,[IO.Compression.ZipArchiveMode]::Create)
     try {
         foreach ($file in @($manifest.files | ForEach-Object { $_.path })+@('install-manifest.json')) {
-            if ($file -notmatch '^(4x4Tools-DLSS5\.aex|SupportCheck\.exe|UpdateCheck\.exe|runtime/nvngx_dlssnr\.dll|LICENSE\.txt|THIRD-PARTY-NOTICES\.txt|NVIDIA-RTX-SDK\.txt|UPSTREAM-MIT\.txt|CONTROLS\.md|install-manifest\.json)$') { throw 'Unexpected file in manual package.' }
+            if ($file -notmatch '^(4x4Tools-DLSS5\.aex|4x4Tools-DLSS5-Photoshop\.8bf|SupportCheck\.exe|UpdateCheck\.exe|runtime/nvngx_dlssnr\.dll|LICENSE\.txt|THIRD-PARTY-NOTICES\.txt|NVIDIA-RTX-SDK\.txt|UPSTREAM-MIT\.txt|LCMS-MIT\.txt|CONTROLS\.md|PHOTOSHOP\.md|install-manifest\.json)$') { throw 'Unexpected file in manual package.' }
             [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,(Join-Path $Payload $file),('4x4Tools-DLSS5/'+$file),[IO.Compression.CompressionLevel]::Optimal) | Out-Null
         }
         $entry=$zip.CreateEntry('README.txt'); $writer=[IO.StreamWriter]::new($entry.Open(),[Text.UTF8Encoding]::new($false))

@@ -15,7 +15,7 @@ foreach ($file in @(Get-PublicFiles)) {
 }
 # Bundle public Git objects and refs, never .git/config, credentials or a CLI account.
 [void](Git @('bundle','create',(Join-Path $kit 'repository.bundle'),'main','--tags'))
-foreach ($pair in @(@{Source=$settings.AdobeSdk;Name='ae-sdk'},@{Source=$settings.NgxSdk;Name='nvidia-dlss'},@{Source=(Split-Path -Parent $settings.MakeNsis);Name='nsis'})) {
+foreach ($pair in @(@{Source=$settings.AdobeSdk;Name='ae-sdk'},@{Source=$settings.PhotoshopSdk;Name='photoshop-sdk/pluginsdk'},@{Source=$settings.Lcms;Name='lcms/lcms2-2.19.1'},@{Source=$settings.NgxSdk;Name='nvidia-dlss'},@{Source=(Split-Path -Parent $settings.MakeNsis);Name='nsis'})) {
     $source=[IO.Path]::GetFullPath($pair.Source).TrimEnd('\')
     if ((Get-Item -LiteralPath $source -Force).Attributes -band [IO.FileAttributes]::ReparsePoint) { throw 'Linked dependency roots cannot be archived.' }
     foreach ($item in @(Get-ChildItem -LiteralPath $source -Recurse -Force)) {
@@ -30,9 +30,13 @@ foreach ($pair in @(@{Source=$settings.AdobeSdk;Name='ae-sdk'},@{Source=$setting
     }
 }
 $runtime=Join-Path $kit 'dependencies\runtime\nvngx_dlssnr.dll'
+$psLicenseCandidates=@((Join-Path $settings.PhotoshopSdk 'ADOBE-SDK-LICENSE.html'),(Join-Path (Split-Path -Parent $settings.PhotoshopSdk) 'ADOBE-SDK-LICENSE.html'),(Join-Path (Split-Path -Parent $settings.PhotoshopSdk) 'license.html'))
+$psLicense=$psLicenseCandidates | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf } | Select-Object -First 1
+if (-not $psLicense) { throw 'Keep the Adobe Photoshop SDK license beside the SDK before archiving the private kit.' }
+Copy-Item -LiteralPath $psLicense -Destination (Join-Path $kit 'dependencies\photoshop-sdk\ADOBE-SDK-LICENSE.html')
 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($runtime)) | Out-Null
 Copy-Item -LiteralPath $settings.Runtime -Destination $runtime
-Write-JsonFile @{AdobeSdk='dependencies/ae-sdk';NgxSdk='dependencies/nvidia-dlss';Runtime='dependencies/runtime/nvngx_dlssnr.dll';MakeNsis='dependencies/nsis/makensis.exe'} (Join-Path $kit '.local\build-settings.json')
+Write-JsonFile @{AdobeSdk='dependencies/ae-sdk';PhotoshopSdk='dependencies/photoshop-sdk/pluginsdk';Lcms='dependencies/lcms/lcms2-2.19.1';NgxSdk='dependencies/nvidia-dlss';Runtime='dependencies/runtime/nvngx_dlssnr.dll';MakeNsis='dependencies/nsis/makensis.exe'} (Join-Path $kit '.local\build-settings.json')
 $instructions=@'
 PRIVATE 4x4Tools-DLSS5 developer kit - do not upload this archive to GitHub.
 

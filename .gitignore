@@ -9,6 +9,9 @@
 /repository.bundle
 /PRIVATE-DEVELOPER-KIT.txt
 *.aex
+*.8bf
+*.psd
+*.psb
 *.dll
 *.exe
 *.lib

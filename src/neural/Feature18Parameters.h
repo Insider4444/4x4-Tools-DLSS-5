@@ -47,6 +47,7 @@ struct Feature18Settings {
     InputEncoding inputEncoding = InputEncoding::Automatic;
     float paperWhiteScale = 1.0F;
     float hdrTransferStrength = 1.0F;
+    bool preserveInputPrecision = false;
 
     GuidanceMode guidanceMode = GuidanceMode::ForceZero;
     DepthConvention depthConvention = DepthConvention::UseInputFlag;

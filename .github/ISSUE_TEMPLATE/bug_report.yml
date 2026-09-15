@@ -13,14 +13,14 @@ body:
     id: version
     attributes:
       label: Plug-in release
-      placeholder: v1.0
+      placeholder: v1.2.0
     validations:
       required: true
   - type: textarea
     id: system
     attributes:
       label: System and application
-      description: GPU model, driver, Windows version, AE/Premiere version, project resolution and bit depth.
+      description: GPU model, driver, Windows version, AE/Premiere/Photoshop version, image or project resolution, bit depth and color profile.
     validations:
       required: true
   - type: textarea

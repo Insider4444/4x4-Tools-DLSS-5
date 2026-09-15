@@ -15,11 +15,12 @@ std::string lastFailure;
 std::chrono::steady_clock::time_point retryAfter{};
 }
 bool processFrame(const std::vector<float>& input, std::vector<float>& output,
-    int width, int height, const Settings& settings, std::string& error) {
+    int width, int height, const Settings& settings, std::string& error,
+    const FrameGeometry& geometry) {
     std::scoped_lock lock(engineMutex);
     if (settings.strength <= 0 || settings.mix <= 0 || settings.mode != 2) {
         output = input;
-        finishFrame(input, output, width, height, settings);
+        finishFrame(input, output, width, height, settings, geometry);
         return true;
     }
     if (!lastFailure.empty() && std::chrono::steady_clock::now() < retryAfter) {
@@ -37,6 +38,7 @@ bool processFrame(const std::vector<float>& input, std::vector<float>& output,
     native.localToneStrength = std::clamp(settings.tone / 100.0F, 0.0F, 2.0F);
     native.localStructureStrength = std::clamp(settings.structure / 100.0F, 0.0F, 2.0F);
     native.useAutoMask = settings.autoMask >= 0.5F;
+    native.preserveInputPrecision = settings.preserveInputPrecision;
     native.inputEncoding = settings.encoding == 2 ? resolve_dlss5::InputEncoding::LinearScRgb :
         resolve_dlss5::InputEncoding::SdrSrgb;
     // Reset every request: AE MFR and Premiere can seek/reorder/duplicate frames.
@@ -48,7 +50,7 @@ bool processFrame(const std::vector<float>& input, std::vector<float>& output,
         retryAfter = std::chrono::steady_clock::now() + std::chrono::seconds(5);
     } else {
         lastFailure.clear();
-        finishFrame(input, output, width, height, settings);
+        finishFrame(input, output, width, height, settings, geometry);
     }
     return ok;
 }

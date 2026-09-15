@@ -48,3 +48,17 @@ The GitHub release workflow builds on a Windows hosted runner with pinned privat
 The first dispatched cloud build succeeded: https://github.com/Insider4444/4x4-Tools-DLSS-5/actions/runs/34315382735. It passed four hosted suites plus package-layout/hash/version verification; publication was deliberately disabled for this test. The private developer ZIP was extracted into a separate short folder, its manifest and dotfiles were verified, Git history was restored, and all six local build suites passed using only its bundled SDK/runtime paths. A deeply nested extraction hit MSVC's path limit; the final build script now reports that condition before compilation.
 
 The EXE/ZIP downloaded from that GitHub run also passed real GPU validation, isolated installation, payload equality and self-removing uninstall on the RTX 5070. Installer source comparison normalizes Git's CRLF/LF checkout difference; all installed binary hashes remain exact.
+
+## Suite v1.2.0 local validation (2026-09-15)
+
+Windows x64, RTX 5070, NVIDIA driver 616.64; community runtime 310.8.SF-v2 with the exact binary/archive pins in resources/runtime.json. This replaces the v1.0 runtime. RTX 20/30/40/50 coverage outside this physical 5070 is based on community runtime targets, not testing each card.
+
+All nine Release CTest suites passed after the Photoshop preview repaint fix (14.97 seconds): finishing controls, update policy, Photoshop high-resolution tiling, Adobe host contract, Adobe neural hardware, installer GPU preflight, update helper, Photoshop host contract and Photoshop neural hardware. High-resolution tests cover every pixel of an 8K image, 40,001-pixel panoramas, 300,000-coordinate planning, overlap corners, document-space finishing, memory guards and cancellation. Host tests check 8/16/32-bit channel layouts, untouched alpha/padding, selections and processing/read failures.
+
+Actual Photoshop 27.11.0 (Beta) executed the registered filter on RGB 16-bit images: 1089 x 613 with a 512-pixel tile core (3.3 seconds), and 8192 x 4320 with a 1024-pixel core (30.3 seconds). Dimensions and depth were unchanged; processed histograms differed. Timings include saving the private PNG test output. The 8K fixture was a resized copy of a provided 4K source, used to test processing capacity; it is not evidence of neural upscaling or an 8K quality benchmark. The scoped UUID, rather than the raw four-character terminology ID, is required for Photoshop scripting.
+
+Six supplied before/after pairs were visually checked. The gallery loaded all 12 image files, switched all six scenes, passed keyboard Home/End endpoints, and fit a 390-pixel viewport without page overflow. These supplied comparisons have unknown generation settings/version and are not new-filter benchmarks.
+
+Earlier AE application comparisons above describe the preceding video implementation. v1.2 additionally passes the AE host/GPU regression harness; no new broad Adobe-version or real-footage certification is claimed.
+
+The final local EXE/ZIP passed all ten installer scenarios: concurrent setup rejection, real GPU validation, fresh install, rollback on failed commit, upgrade backups, tampered files, path traversal, unsupported GPU, a 60-second hung checker, and uninstall preserving foreign/modified files. The compiled EXE separately passed extraction/preflight, installation to both marked Adobe destinations, exact EXE/ZIP payload hashes and self-removing uninstall. No live Adobe folders were changed by these isolated tests.

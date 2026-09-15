@@ -32,20 +32,20 @@ static int report(int code,const std::string& gpu,const std::string& message,siz
 static int check() {
     std::setvbuf(stdout,nullptr,_IONBF,0);
     std::string gpu;size_t memory=0;
-    ComPtr<IDXGIFactory1> factory;
-    if(FAILED(CreateDXGIFactory1(IID_PPV_ARGS(&factory))))return report(10,gpu,"Windows graphics initialization failed.");
+    ComPtr<IDXGIFactory6> factory;
+    if(FAILED(CreateDXGIFactory2(0,IID_PPV_ARGS(&factory))))return report(10,gpu,"Windows graphics initialization failed. Windows 10 1809 or newer is required.");
     bool suitable=false;
     for(UINT i=0;;++i) {
-        ComPtr<IDXGIAdapter1> adapter;if(factory->EnumAdapters1(i,&adapter)==DXGI_ERROR_NOT_FOUND)break;
+        ComPtr<IDXGIAdapter1> adapter;if(factory->EnumAdapterByGpuPreference(i,DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE,IID_PPV_ARGS(&adapter))==DXGI_ERROR_NOT_FOUND)break;
         if(!adapter)continue;
         DXGI_ADAPTER_DESC1 d{};if(FAILED(adapter->GetDesc1(&d))||d.VendorId!=0x10de||(d.Flags&DXGI_ADAPTER_FLAG_SOFTWARE))continue;
         char name[512]{};WideCharToMultiByte(CP_UTF8,0,d.Description,-1,name,sizeof(name),nullptr,nullptr);
         gpu=name;memory=d.DedicatedVideoMemory/(1024*1024);
+        if(gpu.find("RTX")==std::string::npos)continue;
         ComPtr<ID3D12Device> device;
         if(SUCCEEDED(D3D12CreateDevice(adapter.Get(),D3D_FEATURE_LEVEL_12_0,IID_PPV_ARGS(&device)))){suitable=true;break;}
     }
-    if(!suitable)return report(11,gpu,"A compatible NVIDIA GPU with Direct3D 12 support is required. Check the NVIDIA driver.",memory);
-    if(gpu.find("RTX")==std::string::npos)return report(12,gpu,"The neural runtime requires an NVIDIA RTX GPU. GTX, AMD and Intel graphics are not supported.",memory);
+    if(!suitable)return report(11,gpu,"No usable NVIDIA RTX GPU with Direct3D 12 was found. GTX, AMD, Intel and CPU-only rendering are not supported. On an RTX PC, install a current NVIDIA driver and retry.",memory);
     wchar_t exe[32768]{};GetModuleFileNameW(nullptr,exe,32768);
     const auto modulePath=std::filesystem::path(exe).parent_path()/L"4x4Tools-DLSS5.aex";
     HMODULE module=LoadLibraryExW(modulePath.c_str(),nullptr,LOAD_WITH_ALTERED_SEARCH_PATH);

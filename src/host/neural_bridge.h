@@ -2,6 +2,12 @@
 #include <string>
 #include <vector>
 namespace adobe_dlss5 {
+// A tile retains document coordinates for masks and spatial restoration.
+// Zero document dimensions select the original whole-frame behavior.
+struct FrameGeometry {
+    int documentWidth = 0, documentHeight = 0;
+    int originX = 0, originY = 0;
+};
 struct Settings {
     int mode = 2, view = 1, strength = 100, preset = 1, mix = 100, encoding = 1;
     int look = 1;
@@ -12,8 +18,10 @@ struct Settings {
     float wipe = 50, region = 1, centerX = 50, centerY = 50;
     float regionWidth = 65, regionHeight = 75, feather = 30;
     float renderScale = 1;
+    bool preserveInputPrecision = false;
 };
 bool processFrame(const std::vector<float>& input, std::vector<float>& output,
-    int width, int height, const Settings& settings, std::string& error);
+    int width, int height, const Settings& settings, std::string& error,
+    const FrameGeometry& geometry = {});
 void shutdownEngine() noexcept;
 }

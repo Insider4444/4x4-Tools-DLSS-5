@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="360" viewBox="0 0 1280 360" role="img" aria-labelledby="title desc">
   <title id="title">4x4-Tools DLSS 5</title>
-  <desc id="desc">Neural enhancement. Creative control. For Adobe After Effects and Premiere Pro.</desc>
+  <desc id="desc">NVIDIA-based neural enhancement for Adobe After Effects, Premiere Pro and Photoshop.</desc>
   <defs>
     <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#0c1422"/><stop offset="1" stop-color="#152e38"/></linearGradient>
     <linearGradient id="accent" x2="1" y2="1"><stop stop-color="#62edcf"/><stop offset="1" stop-color="#318cae"/></linearGradient>
@@ -16,10 +16,10 @@
     <rect y="135" width="35" height="35" rx="7" opacity=".42"/><rect x="45" y="135" width="35" height="35" rx="7"/><rect x="90" y="135" width="35" height="35" rx="7"/><rect x="135" y="135" width="35" height="35" rx="7"/>
   </g>
   <g font-family="Segoe UI, Helvetica, Arial, sans-serif">
-    <text x="298" y="99" fill="#7bddce" font-size="16" font-weight="600" letter-spacing="4">4x4-TOOLS / v1.0</text>
+    <text x="298" y="99" fill="#b5f064" font-size="16" font-weight="600" letter-spacing="4">4x4-TOOLS / ADOBE SUITE v1.2</text>
     <text x="293" y="177" fill="#f0f8fb" font-size="72" font-weight="700" letter-spacing="-2">DLSS 5</text>
-    <text x="298" y="223" fill="#c9dadf" font-size="27">Neural enhancement. Creative control.</text>
-    <text x="299" y="270" fill="#8fa9b5" font-size="17">AFTER EFFECTS + PREMIERE PRO  /  WINDOWS x64</text>
+    <text x="298" y="223" fill="#c9dadf" font-size="27">NVIDIA-based neural enhancement.</text>
+    <text x="299" y="270" fill="#8fa9b5" font-size="16">AFTER EFFECTS + PREMIERE PRO + PHOTOSHOP / WINDOWS x64</text>
     <rect x="1056" y="72" width="148" height="34" rx="17" fill="#26464d"/>
     <text x="1130" y="94" text-anchor="middle" fill="#8ee4d3" font-size="12" font-weight="600" letter-spacing="1">INDEPENDENT TOOL</text>
   </g>

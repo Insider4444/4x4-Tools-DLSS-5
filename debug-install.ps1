@@ -29,6 +29,9 @@ else {
 }
 $target=Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Adobe\Common\Plug-ins\7.0\MediaCore\4x4Tools-DLSS5'
 $manifest=Get-Content -LiteralPath (Join-Path $package.packageDir 'payload\install-manifest.json') -Raw | ConvertFrom-Json
-foreach ($file in $manifest.files) { if ((Get-Sha (Join-Path $target $file.path)) -ne $file.sha256) { throw ('Installed file verification failed: '+$file.path) } }
+$photoshopTarget=Join-Path ([Environment]::GetFolderPath('CommonProgramFiles')) 'Adobe\Plug-Ins\CC\4x4Tools-DLSS5'
+foreach ($folder in @($target,$photoshopTarget)) {
+    foreach ($file in $manifest.files) { if ((Get-Sha (Join-Path $folder $file.path)) -ne $file.sha256) { throw ('Installed file verification failed: '+$folder+'\'+$file.path) } }
+}
 Write-JsonFile @{version=$package.version;coreFingerprint=$fingerprint;moduleSHA=(Get-Sha (Join-Path $target '4x4Tools-DLSS5.aex'));installedAt=(Get-Date -Format o)} $receiptPath
-Write-Host ('Installed and verified v'+$package.version+'. Open AE/Premiere and test your footage. When satisfied, edit update-note.md and run deploy-main.ps1 to build and publish through GitHub Actions.')
+Write-Host ('Installed and verified v'+$package.version+'. Open AE, Premiere or Photoshop and test. When satisfied, edit update-note.md and run deploy-main.ps1 to build and publish through GitHub Actions.')

@@ -4,12 +4,22 @@ $ErrorActionPreference='Stop'
 if ($env:GITHUB_ACTIONS -ne 'true') { throw 'Use scripts/build.ps1 for local GPU validation.' }
 $downloads=Join-Path $ProjectRoot '.local\runtime-download'
 New-Item -ItemType Directory -Path $downloads -Force | Out-Null
-[void](Gh @('release','download','v1.0','--repo','Insider4444/4x4-Tools-DLSS-5','--pattern','4x4Tools-DLSS5-win-v1.0.zip','--dir',$downloads))
-Expand-Archive -LiteralPath (Join-Path $downloads '4x4Tools-DLSS5-win-v1.0.zip') -DestinationPath (Join-Path $downloads 'expanded')
-$runtime=Join-Path $downloads 'expanded\4x4Tools-DLSS5\runtime\nvngx_dlssnr.dll'
-if ((Get-Sha $runtime) -ne '984bee0f775c277d5829b8fd6775d53a7b0f75396c852b3aaf06a18375f81014') { throw 'Downloaded runtime does not match the reviewed runtime.' }
+$pin=Get-Content -LiteralPath (Join-Path $ProjectRoot 'resources\runtime.json') -Raw | ConvertFrom-Json
+if ($pin.archiveUrl -notmatch '^https://github\.com/RankFTW/rhi-repo/releases/download/[^/]+/[^/]+\.zip$' -or $pin.archiveEntry -ne 'nvngx_dlssnr.dll') { throw 'Review the new runtime source before building.' }
+$archive=Join-Path $downloads 'runtime.zip'
+Invoke-WebRequest -Uri $pin.archiveUrl -OutFile $archive
+if ((Get-Sha $archive) -ne $pin.archiveSha256) { throw 'Downloaded runtime archive digest mismatch.' }
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zip=[IO.Compression.ZipFile]::OpenRead($archive)
+$runtime=Join-Path $downloads 'nvngx_dlssnr.dll'
+try {
+    $entry=$zip.GetEntry($pin.archiveEntry)
+    if (-not $entry) { throw 'Pinned runtime entry is missing.' }
+    [IO.Compression.ZipFileExtensions]::ExtractToFile($entry,$runtime,$false)
+} finally { $zip.Dispose() }
+if ((Get-Sha $runtime) -ne $pin.sha256) { throw 'Downloaded runtime does not match the reviewed runtime.' }
 $sdk=Join-Path $ProjectRoot '.local\ci-sdk'
-& (Join-Path $ProjectRoot 'setup-dev.ps1') -AdobeSdk (Join-Path $sdk 'ae-sdk') -NgxSdk (Join-Path $sdk 'nvidia-dlss') -MakeNsis (Join-Path $sdk 'nsis\makensis.exe') -Runtime $runtime
+& (Join-Path $ProjectRoot 'setup-dev.ps1') -AdobeSdk (Join-Path $sdk 'ae-sdk') -PhotoshopSdk (Join-Path $sdk 'photoshop-sdk') -Lcms (Join-Path $sdk 'lcms') -NgxSdk (Join-Path $sdk 'nvidia-dlss') -MakeNsis (Join-Path $sdk 'nsis\makensis.exe') -Runtime $runtime
 & (Join-Path $PSScriptRoot 'build.ps1') -HostedCI
 & (Join-Path $PSScriptRoot 'package.ps1')
 & (Join-Path $ProjectRoot 'tests\package_layout_test.ps1')

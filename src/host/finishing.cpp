@@ -56,10 +56,13 @@ float expose(float v,float gain,int encoding) {
     return exposed<=.0031308F?exposed*12.92F:1.055F*std::pow(exposed,1/2.4F)-.055F;
 }
 }
-void finishFrame(const std::vector<float>& source,std::vector<float>& neural,int w,int h,const Settings& s) {
+void finishFrame(const std::vector<float>& source,std::vector<float>& neural,int w,int h,const Settings& s,
+    const FrameGeometry& geometry) {
     const size_t n=size_t(w)*h;
     if(w<=0||h<=0||source.size()!=n*4||neural.size()!=source.size())
         throw std::invalid_argument("Invalid finishing frame buffers");
+    const int documentWidth=geometry.documentWidth>0?geometry.documentWidth:w;
+    const int documentHeight=geometry.documentHeight>0?geometry.documentHeight:h;
     // Retain the original fast path and exact runtime pixels when no finish is requested.
     if(s.mode==2&&s.strength>0&&s.strength<=100&&s.mix==100&&s.view!=4&&s.region<1.5F&&
         s.colorHold==0&&s.exposureHold==0&&s.highlights==0&&s.shadows==0&&s.texture==0&&
@@ -83,7 +86,7 @@ void finishFrame(const std::vector<float>& source,std::vector<float>& neural,int
         if(!srcY.empty()) {srcY[p]=ys;neuralY[p]=yn;}
     }
     if(lighting>0) {
-        const float radius=std::max(1.0F,std::min(w,h)*.025F);
+        const float radius=std::max(1.0F,std::min(documentWidth,documentHeight)*.025F);
         blur(srcY,lowSrc,w,h,radius);blur(neuralY,lowNeural,w,h,radius);
         for(size_t p=0;p<n;++p) {
             const float correction=lighting*(lowSrc[p]-lowNeural[p]);
@@ -119,7 +122,8 @@ void finishFrame(const std::vector<float>& source,std::vector<float>& neural,int
         const float yn=luma(&neural[i]);
         for(int c=0;c<3;++c)neural[i+c]=yn+(neural[i+c]-yn)*saturation;
         // Protection blends back original pixels, including after color finishing.
-        float weight=pct(float(s.mix))*selection(x,y,w,h,s);
+        float weight=pct(float(s.mix))*selection(x+geometry.originX,y+geometry.originY,
+            documentWidth,documentHeight,s);
         if(s.strength<=0||s.mode!=2)weight=0;
         weight*=1-pct(s.highlights)*smooth(.7F,.98F,ys);
         weight*=1-pct(s.shadows)*(1-smooth(.02F,.2F,ys));

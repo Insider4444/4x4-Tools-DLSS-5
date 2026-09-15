@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Before / After — 4x4Tools DLSS5</title>
+<meta name="description" content="Compare six publisher-supplied examples of NVIDIA-based DLSS5 neural enhancement with 4x4Tools.">
+<link rel="stylesheet" href="gallery.css">
+</head>
+<body>
+<header><a class="brand" href="https://github.com/Insider4444/4x4-Tools-DLSS-5"><span class="mark">4×4</span> <span>4x4Tools <strong>DLSS5</strong></span></a><a class="download" href="https://github.com/Insider4444/4x4-Tools-DLSS-5/releases/latest">Get the Adobe suite <span aria-hidden="true">↗</span></a></header>
+<main>
+<div class="intro"><div><p class="eyebrow">NVIDIA-BASED NEURAL ENHANCEMENT</p><h1>Look closer.</h1><p>Explore lighting, texture and detail. Drag the divider to compare.</p></div><p class="hosts">After Effects<br>Premiere Pro<br>Photoshop</p></div>
+<nav id="scenes" aria-label="Choose a comparison scene"></nav>
+<figure>
+<div class="comparison" id="comparison" style="--split:50%">
+<img id="before" src="images/16662-before.png" width="960" height="540" alt="Original courtyard scene">
+<img id="after" src="images/16662-after.png" width="960" height="540" alt="Enhanced courtyard scene">
+<span class="image-label original">Original</span><span class="image-label enhanced">Enhanced</span>
+<span class="divider" aria-hidden="true"><span>‹ ›</span></span>
+<label class="sr-only" for="split">Original image percentage</label>
+<input id="split" type="range" min="0" max="100" value="50" aria-valuetext="50 percent original, 50 percent enhanced">
+</div>
+<figcaption><div><span class="counter" id="counter">01 / 06</span><strong id="title">Courtyard · fabric &amp; skin</strong></div><div class="compare-buttons"><button id="show-before">Original</button><button id="reset">50 / 50</button><button id="show-after">Enhanced</button></div></figcaption>
+</figure>
+<p class="load-status" id="load-status" role="status" aria-live="polite"></p>
+<p class="keyboard">Use the slider's arrow keys to compare precisely. Home shows enhanced; End shows original.</p>
+<section class="context"><div><h2>Your image. Your balance.</h2><p>Three neural styles, eight editable presets, intensity, original color and lighting preservation, texture recovery and selective blending. Start gently, then compare the details that matter to your shot.</p><a href="https://github.com/Insider4444/4x4-Tools-DLSS-5/blob/main/docs/CONTROLS.md">Explore the controls →</a></div><aside><h2>About these comparisons</h2><p>Publisher-supplied game-footage examples. Labels and matching framing were checked; both images are equally resized from 3840 × 2160 to 960 × 540. Generating version and settings were not recorded. These are not a Photoshop v1.2 benchmark.</p><a href="https://github.com/Insider4444/4x4-Tools-DLSS-5/blob/main/docs/gallery/PROVENANCE.md">Image provenance →</a></aside></section>
+<noscript><p>Enable JavaScript to switch scenes and move the comparison divider. The original and enhanced courtyard images are also available separately: <a href="images/16662-before.png">original</a> / <a href="images/16662-after.png">enhanced</a>.</p></noscript>
+</main>
+<footer><p>Independent community integration using a modified NVIDIA runtime. No affiliation with NVIDIA or Adobe. Enhancement at the original resolution; no upscaling or frame generation.</p><a href="https://github.com/Insider4444/4x4-Tools-DLSS-5/blob/main/docs/COMPATIBILITY.md">GPU compatibility &amp; scope</a></footer>
+<script src="gallery.js"></script>
+</body></html>

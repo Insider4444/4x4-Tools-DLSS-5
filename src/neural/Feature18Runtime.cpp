@@ -650,7 +650,14 @@ float decodeProxy(
     }
     if (settings.inputEncoding == InputEncoding::SdrSrgb ||
         settings.inputEncoding == InputEncoding::Automatic) {
-        return decoded;
+        return settings.preserveInputPrecision ?
+            original + decoded - std::round(encodeProxy(original, settings)*255.0F)/255.0F : decoded;
+    }
+    if (settings.preserveInputPrecision) {
+        const float quantized = std::round(encodeProxy(original, settings)*255.0F)/255.0F;
+        const float baseline = quantized / std::max(1.0e-4F,1.0F-quantized) /
+            std::max(0.1F,settings.paperWhiteScale);
+        return original + (decoded-baseline)*std::clamp(settings.hdrTransferStrength,0.0F,1.0F);
     }
     return original +
         (decoded - original) *
@@ -879,6 +886,7 @@ struct Feature18Runtime::Impl {
             DXGI_ADAPTER_DESC1 description{};
             if (FAILED(adapter->GetDesc1(&description)) ||
                 description.VendorId != 0x10DE ||
+                std::wstring(description.Description).find(L"RTX") == std::wstring::npos ||
                 (description.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) != 0) {
                 continue;
             }

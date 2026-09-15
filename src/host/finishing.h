@@ -3,5 +3,6 @@
 namespace adobe_dlss5 {
 // Float straight-alpha RGBA, in-place neural output. No global frame/history state.
 void finishFrame(const std::vector<float>& source, std::vector<float>& neural,
-    int width, int height, const Settings& settings);
+    int width, int height, const Settings& settings,
+    const FrameGeometry& geometry = {});
 }

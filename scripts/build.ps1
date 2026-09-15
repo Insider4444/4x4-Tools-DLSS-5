@@ -5,6 +5,7 @@ param(
     [string]$NgxSdk = $env:DLSS_SDK_ROOT,
     [string]$Runtime = $env:DLSSNR_RUNTIME_DLL,
     [switch]$CpuOnly,
+    [switch]$Photoshop = $true,
     [switch]$HostedCI
 )
 $ErrorActionPreference = 'Stop'
@@ -58,19 +59,28 @@ function Run([string]$Executable, [string[]]$Arguments, [string]$Log) {
     } finally { $process.Dispose() }
 }
 $config=@('-S',$projectRoot,'-B',$buildDir,'-G',$generators[$major],'-A','x64')
+$config+=('-DBUILD_PHOTOSHOP_PLUGIN='+$(if($Photoshop -and -not $CpuOnly){'ON'}else{'OFF'}))
 if ($CpuOnly) { $config+='-DBUILD_ADOBE_PLUGIN=OFF' }
 else {
     foreach ($dependency in @($AdobeSdk,$NgxSdk,$Runtime)) {
         if (-not $dependency -or -not (Test-Path -LiteralPath $dependency)) { throw 'Supply valid AdobeSdk, NgxSdk and Runtime paths. See docs/BUILDING.md.' }
     }
     $config+=@('-DBUILD_ADOBE_PLUGIN=ON',"-DAE_SDK_ROOT=$AdobeSdk","-DNGX_SDK_ROOT=$NgxSdk","-DNR_RUNTIME_FILE=$Runtime")
+    if ($Photoshop) {
+        $settings=Read-BuildSettings
+        $config+=@("-DPHOTOSHOP_SDK_ROOT=$($settings.PhotoshopSdk)","-DLCMS_ROOT=$($settings.Lcms)")
+    }
 }
 Run $cmake $config 'configure.log'
 Run $cmake @('--build',$buildDir,'--config','Release','--parallel') 'build.log'
 $testArgs=@('--test-dir',$buildDir,'-C','Release','--output-on-failure','--no-tests=error')
-if ($HostedCI) { $testArgs+=@('-E','adobe_neural_hardware|installer_gpu_preflight') }
+if ($HostedCI) { $testArgs+=@('-E','adobe_neural_hardware|photoshop_neural_hardware|installer_gpu_preflight') }
 Run $ctest $testArgs 'tests.log'
 Write-Host 'Build and tests passed.'
 $binaries=@()
-if (-not $CpuOnly) { $binaries=@('4x4Tools-DLSS5.aex','SupportCheck.exe','UpdateCheck.exe','runtime/nvngx_dlssnr.dll' | ForEach-Object { @{path=$_;sha256=(Get-Sha (Join-Path (Join-Path $buildDir 'Release') $_))} }) }
+if (-not $CpuOnly) {
+    $names=@('4x4Tools-DLSS5.aex','SupportCheck.exe','UpdateCheck.exe','runtime/nvngx_dlssnr.dll')
+    if ($Photoshop) { $names+='4x4Tools-DLSS5-Photoshop.8bf' }
+    $binaries=@($names | ForEach-Object { @{path=$_;sha256=(Get-Sha (Join-Path (Join-Path $buildDir 'Release') $_))} })
+}
 Write-JsonFile @{version=$versionInfo.Config.version;cpuOnly=[bool]$CpuOnly;hardwareValidated=(-not $HostedCI -and -not $CpuOnly);coreFingerprint=(Get-SourceFingerprint -CodeOnly);binaries=$binaries;created=(Get-Date -Format o)} (Join-Path $buildDir 'build-receipt.json')

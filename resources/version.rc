@@ -17,7 +17,11 @@ BEGIN
   BLOCK "040904b0"
   BEGIN
    VALUE "CompanyName", "4x4-Tools\0"
+#ifdef PHOTOSHOP_FILTER
+   VALUE "FileDescription", "4x4Tools DLSS5 full-resolution Photoshop image enhancement\0"
+#else
    VALUE "FileDescription", "4x4-Tools DLSS 5 neural video enhancement\0"
+#endif
    VALUE "FileVersion", TOOLS_PRODUCT_VERSION "\0"
    VALUE "ProductName", "4x4-Tools DLSS 5\0"
    VALUE "ProductVersion", TOOLS_PRODUCT_VERSION "\0"

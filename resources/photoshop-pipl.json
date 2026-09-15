@@ -1,0 +1,311 @@
+{
+  "PiPLs": [
+    {
+      "Kind": "Filter",
+      "Name": "DLSS5 - Image Enhancement...",
+      "Category": "4x4Tools",
+      "Version": 4,
+      "SubVersion": 0,
+      "ComponentVersionShortNum": 1,
+      "ComponentVersionMinorRevNum": 1,
+      "ComponentVersionDotRevNum": 0,
+      "ComponentName": "4x4Tools-DLSS5-Photoshop",
+      "CodeEntryPointWin64": "PluginMain",
+      "SupportedModes": {
+        "Multichannel": false,
+        "CMYKColor": false,
+        "LABColor": false,
+        "HSLColor": false,
+        "IndexedColor": false,
+        "RGBColor": true,
+        "HSBColor": false,
+        "Bitmap": false,
+        "Duotone": false,
+        "GrayScale": false
+      },
+      "EnableInfo": "in (PSHOP_ImageMode, RGBMode, RGB48Mode, RGB96Mode) && in (PSHOP_ImageDepth, 8, 16, 32)",
+      "PlugInMaxSize": [
+        300000,
+        300000
+      ],
+      "MonitorScalingAware": true,
+      "FilterLayerSupport": true,
+      "FilterCaseInfo": [
+        {
+          "InputHandling": "InStraightData",
+          "OutputHandling": "OutStraightData",
+          "WriteOutsideSelection": false,
+          "FiltersLayerMasks": false,
+          "WorksWithBlankData": true,
+          "DontCopySourceToDestination": false
+        },
+        {
+          "InputHandling": "InStraightData",
+          "OutputHandling": "OutStraightData",
+          "WriteOutsideSelection": false,
+          "FiltersLayerMasks": false,
+          "WorksWithBlankData": true,
+          "DontCopySourceToDestination": false
+        },
+        {
+          "InputHandling": "InStraightData",
+          "OutputHandling": "OutStraightData",
+          "WriteOutsideSelection": false,
+          "FiltersLayerMasks": false,
+          "WorksWithBlankData": true,
+          "DontCopySourceToDestination": false
+        },
+        {
+          "InputHandling": "InStraightData",
+          "OutputHandling": "OutStraightData",
+          "WriteOutsideSelection": false,
+          "FiltersLayerMasks": false,
+          "WorksWithBlankData": true,
+          "DontCopySourceToDestination": false
+        },
+        {
+          "InputHandling": "InStraightData",
+          "OutputHandling": "OutStraightData",
+          "WriteOutsideSelection": false,
+          "FiltersLayerMasks": false,
+          "WorksWithBlankData": true,
+          "DontCopySourceToDestination": false
+        },
+        {
+          "InputHandling": "InStraightData",
+          "OutputHandling": "OutStraightData",
+          "WriteOutsideSelection": false,
+          "FiltersLayerMasks": false,
+          "WorksWithBlankData": true,
+          "DontCopySourceToDestination": false
+        },
+        {
+          "InputHandling": "InStraightData",
+          "OutputHandling": "OutStraightData",
+          "WriteOutsideSelection": false,
+          "FiltersLayerMasks": false,
+          "WorksWithBlankData": true,
+          "DontCopySourceToDestination": false
+        }
+      ],
+      "HasTerminology": {
+        "EventID": "T4P5",
+        "ClassID": "4x4T",
+        "ScopeString": "ca8c8e71-f8ea-433b-a977-3857309e371f"
+      },
+      "Terminology": {
+        "ScriptCode": 0,
+        "MinorVersion": 0,
+        "Suites": [
+          {
+            "SuitVersion": 1,
+            "SuitName": "4x4Tools",
+            "SuitLevel": 1,
+            "SuitID": "4x4T",
+            "SuitDescription": "Full-resolution neural image enhancement",
+            "Events": [
+              {
+                "ClassID": "4x4T",
+                "EventName": "DLSS5 Image Enhancement",
+                "Parameters": [
+                  {
+                    "ParamKeyword": "x001",
+                    "ParamType": "doub",
+                    "ParamName": "Mode",
+                    "ParamDescription": "Mode"
+                  },
+                  {
+                    "ParamKeyword": "x002",
+                    "ParamType": "doub",
+                    "ParamName": "Output",
+                    "ParamDescription": "Output"
+                  },
+                  {
+                    "ParamKeyword": "x003",
+                    "ParamType": "doub",
+                    "ParamName": "Intensity",
+                    "ParamDescription": "Intensity"
+                  },
+                  {
+                    "ParamKeyword": "x004",
+                    "ParamType": "doub",
+                    "ParamName": "Style",
+                    "ParamDescription": "Style"
+                  },
+                  {
+                    "ParamKeyword": "x005",
+                    "ParamType": "doub",
+                    "ParamName": "Mix",
+                    "ParamDescription": "Mix"
+                  },
+                  {
+                    "ParamKeyword": "x006",
+                    "ParamType": "doub",
+                    "ParamName": "Input color",
+                    "ParamDescription": "Input color"
+                  },
+                  {
+                    "ParamKeyword": "x008",
+                    "ParamType": "doub",
+                    "ParamName": "Image preset",
+                    "ParamDescription": "Image preset"
+                  },
+                  {
+                    "ParamKeyword": "x010",
+                    "ParamType": "doub",
+                    "ParamName": "Neural tone",
+                    "ParamDescription": "Neural tone"
+                  },
+                  {
+                    "ParamKeyword": "x011",
+                    "ParamType": "doub",
+                    "ParamName": "Neural structure",
+                    "ParamDescription": "Neural structure"
+                  },
+                  {
+                    "ParamKeyword": "x012",
+                    "ParamType": "doub",
+                    "ParamName": "Automatic mask",
+                    "ParamDescription": "Automatic mask"
+                  },
+                  {
+                    "ParamKeyword": "x015",
+                    "ParamType": "doub",
+                    "ParamName": "Preserve color",
+                    "ParamDescription": "Preserve color"
+                  },
+                  {
+                    "ParamKeyword": "x016",
+                    "ParamType": "doub",
+                    "ParamName": "Preserve lighting",
+                    "ParamDescription": "Preserve lighting"
+                  },
+                  {
+                    "ParamKeyword": "x017",
+                    "ParamType": "doub",
+                    "ParamName": "Protect highlights",
+                    "ParamDescription": "Protect highlights"
+                  },
+                  {
+                    "ParamKeyword": "x018",
+                    "ParamType": "doub",
+                    "ParamName": "Protect shadows",
+                    "ParamDescription": "Protect shadows"
+                  },
+                  {
+                    "ParamKeyword": "x019",
+                    "ParamType": "doub",
+                    "ParamName": "Recover texture",
+                    "ParamDescription": "Recover texture"
+                  },
+                  {
+                    "ParamKeyword": "x020",
+                    "ParamType": "doub",
+                    "ParamName": "Detail",
+                    "ParamDescription": "Detail"
+                  },
+                  {
+                    "ParamKeyword": "x021",
+                    "ParamType": "doub",
+                    "ParamName": "Radius",
+                    "ParamDescription": "Radius"
+                  },
+                  {
+                    "ParamKeyword": "x022",
+                    "ParamType": "doub",
+                    "ParamName": "Artifact protection",
+                    "ParamDescription": "Artifact protection"
+                  },
+                  {
+                    "ParamKeyword": "x025",
+                    "ParamType": "doub",
+                    "ParamName": "Saturation",
+                    "ParamDescription": "Saturation"
+                  },
+                  {
+                    "ParamKeyword": "x026",
+                    "ParamType": "doub",
+                    "ParamName": "Warmth",
+                    "ParamDescription": "Warmth"
+                  },
+                  {
+                    "ParamKeyword": "x027",
+                    "ParamType": "doub",
+                    "ParamName": "Tint",
+                    "ParamDescription": "Tint"
+                  },
+                  {
+                    "ParamKeyword": "x028",
+                    "ParamType": "doub",
+                    "ParamName": "Exposure",
+                    "ParamDescription": "Exposure"
+                  },
+                  {
+                    "ParamKeyword": "x031",
+                    "ParamType": "doub",
+                    "ParamName": "Wipe",
+                    "ParamDescription": "Wipe"
+                  },
+                  {
+                    "ParamKeyword": "x032",
+                    "ParamType": "doub",
+                    "ParamName": "Region",
+                    "ParamDescription": "Region"
+                  },
+                  {
+                    "ParamKeyword": "x033",
+                    "ParamType": "doub",
+                    "ParamName": "Center X",
+                    "ParamDescription": "Center X"
+                  },
+                  {
+                    "ParamKeyword": "x034",
+                    "ParamType": "doub",
+                    "ParamName": "Center Y",
+                    "ParamDescription": "Center Y"
+                  },
+                  {
+                    "ParamKeyword": "x035",
+                    "ParamType": "doub",
+                    "ParamName": "Region width",
+                    "ParamDescription": "Region width"
+                  },
+                  {
+                    "ParamKeyword": "x036",
+                    "ParamType": "doub",
+                    "ParamName": "Region height",
+                    "ParamDescription": "Region height"
+                  },
+                  {
+                    "ParamKeyword": "x037",
+                    "ParamType": "doub",
+                    "ParamName": "Feather",
+                    "ParamDescription": "Feather"
+                  },
+                  {
+                    "ParamKeyword": "x099",
+                    "ParamType": "doub",
+                    "ParamName": "Tile core",
+                    "ParamDescription": "Tile core"
+                  }
+                ],
+                "EventType": "T4P5",
+                "DirectParamType": "#ImR",
+                "ReplyType": "null",
+                "DirectParamFlagBits": {
+                  "ChangesState": true,
+                  "ListOfItems": false,
+                  "DirectParamOptional": true,
+                  "Enumerated": true
+                },
+                "EventDescription": "Enhance an RGB image with 4x4Tools"
+              }
+            ]
+          }
+        ],
+        "Language": 0,
+        "MajorVersion": 1
+      }
+    }
+  ]
+}

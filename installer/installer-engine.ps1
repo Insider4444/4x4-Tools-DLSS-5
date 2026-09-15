@@ -4,6 +4,7 @@ param(
     [ValidateSet('Validate','Install','Uninstall')][string]$Action = 'Validate',
     [string]$PackageDir = $PSScriptRoot,
     [string]$MaintenanceDir,
+    [string]$ReportPath,
     [string]$SandboxRoot
 )
 $ErrorActionPreference='Stop'
@@ -11,7 +12,8 @@ Set-StrictMode -Version 2
 $productId='4x4-Tools-DLSS-5'
 $registryKey='HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\4x4-Tools-DLSS-5'
 $allowed=@('4x4Tools-DLSS5.aex','SupportCheck.exe','UpdateCheck.exe','runtime/nvngx_dlssnr.dll',
-    'LICENSE.txt','THIRD-PARTY-NOTICES.txt','NVIDIA-RTX-SDK.txt','UPSTREAM-MIT.txt','CONTROLS.md')
+    'LICENSE.txt','THIRD-PARTY-NOTICES.txt','NVIDIA-RTX-SDK.txt','UPSTREAM-MIT.txt','CONTROLS.md',
+    '4x4Tools-DLSS5-Photoshop.8bf','LCMS-MIT.txt','PHOTOSHOP.md')
 $session=(Get-Date -Format 'yyyyMMdd-HHmmss')+'-'+[Guid]::NewGuid().ToString('N')
 $logPath=$null
 $installMutex=$null
@@ -61,9 +63,9 @@ function Remove-OwnedTree([string]$Path,[string]$Root) {
 }
 function Assert-Closed {
     $running=@(Get-Process -ErrorAction SilentlyContinue | Where-Object {
-        $_.ProcessName -match '^(AfterFX|AfterFX\.com|aerender|aerendercore|Adobe Premiere Pro)$'
+        $_.ProcessName -match '^(AfterFX|AfterFX\.com|aerender|aerendercore|Adobe Premiere Pro|Photoshop)$'
     })
-    if ($running.Count) { throw 'Save your projects and fully close After Effects, Premiere Pro and Adobe render processes, then run setup again. No application will be closed automatically.' }
+    if ($running.Count) { throw 'Save your work and fully close After Effects, Premiere Pro, Photoshop and Adobe render processes, then run setup again. No application will be closed automatically.' }
 }
 function Read-Manifest([string]$Root,[bool]$VerifyFiles) {
     $file=Contained (Join-Path $Root 'install-manifest.json') $Root
@@ -83,7 +85,10 @@ function Read-Manifest([string]$Root,[bool]$VerifyFiles) {
             if ((Hash $path) -ne $record.sha256) { throw "Package integrity check failed: $relative. Download a fresh release; the existing installation was not changed." }
         }
     }
-    $required=@($allowed | Where-Object { $_ -ne 'UpdateCheck.exe' -or [version]$manifest.version -ge [version]'1.1.0' })
+    $required=@($allowed | Where-Object {
+        ($_ -ne 'UpdateCheck.exe' -or [version]$manifest.version -ge [version]'1.1.0') -and
+        ($_ -notin @('4x4Tools-DLSS5-Photoshop.8bf','LCMS-MIT.txt','PHOTOSHOP.md') -or [version]$manifest.version -ge [version]'1.2.0')
+    })
     foreach ($name in $required) { if (-not $seen.ContainsKey($name)) { throw 'The installation manifest is incomplete.' } }
     return $manifest
 }
@@ -116,7 +121,7 @@ function Check-Gpu([string]$Root) {
         if ($process.ExitCode -ne 0 -or -not $result -or -not $result.ok) {
             $detail='The checker stopped unexpectedly (exit '+$process.ExitCode+').'
             if ($result -and $result.message) { $detail=$result.message }
-            throw ($detail+' The bundled runtime is not compatible with this GPU/driver configuration. Update the NVIDIA driver and retry. RTX 30/40/50 support is determined by this test; no alternate model is downloaded automatically. Your previous installation is unchanged.')
+            throw ($detail+' Compatibility is not established on this GPU/driver configuration. Update the NVIDIA driver and retry. The bundled cross-generation runtime targets RTX 20/30/40/50; no alternate model is downloaded automatically. Your previous installation is unchanged.')
         }
         Log ('GPU test passed: '+$result.gpu)
         return $result
@@ -127,6 +132,9 @@ function Install-Payload([string]$Source,$Manifest) {
     $backup=Contained (Join-Path $stateRoot ('Backups\'+$session)) $stateRoot
     $hadPlugin=Test-Path -LiteralPath $target
     $hadMaintenance=Test-Path -LiteralPath $maintenance
+    $includePhotoshop=[version]$Manifest.version -ge [version]'1.2.0'
+    $hadPhotoshop=Test-Path -LiteralPath $photoshopTarget
+    $photoshopOldMoved=$false; $photoshopNewMoved=$false
     $oldMoved=$false; $newMoved=$false; $maintenanceMoved=$false; $maintenanceInstalled=$false
     $oldRegistry=$null; $registryWritten=$false
     if (-not $SandboxRoot -and (Test-Path -LiteralPath $registryKey)) { $oldRegistry=Get-ItemProperty -LiteralPath $registryKey }
@@ -138,6 +146,10 @@ function Install-Payload([string]$Source,$Manifest) {
             Copy-Item -LiteralPath (Join-Path $Source $relative) -Destination $destination
         }
         [void](Read-Manifest (Join-Path $stage 'plugin') $true)
+        if ($includePhotoshop) {
+            Copy-Item -LiteralPath (Join-Path $stage 'plugin') -Destination (Join-Path $stage 'photoshop') -Recurse
+            [void](Read-Manifest (Join-Path $stage 'photoshop') $true)
+        }
         Copy-Item -LiteralPath $PSCommandPath -Destination (Join-Path $stage 'maintenance\installer-engine.ps1')
         if ($MaintenanceDir) {
             $uninstaller=Contained (Join-Path (Full $MaintenanceDir) 'Uninstall.exe') (Full $MaintenanceDir)
@@ -146,7 +158,7 @@ function Install-Payload([string]$Source,$Manifest) {
         }
         # Recheck immediately before changing live files.
         if (-not $SandboxRoot) { Assert-Closed }
-        SafePath $target; SafePath $maintenance
+        SafePath $target; SafePath $maintenance; SafePath $photoshopTarget
         New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target),(Split-Path -Parent $maintenance) | Out-Null
         if ($hadPlugin) {
             Get-ChildItem -LiteralPath $target -Recurse -Force | ForEach-Object { SafePath $_.FullName }
@@ -154,6 +166,15 @@ function Install-Payload([string]$Source,$Manifest) {
             Move-Item -LiteralPath $target -Destination (Join-Path $backup 'plugin'); $oldMoved=$true
         }
         Move-Item -LiteralPath (Join-Path $stage 'plugin') -Destination $target; $newMoved=$true
+        if ($includePhotoshop) {
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $photoshopTarget) | Out-Null
+            if ($hadPhotoshop) {
+                Get-ChildItem -LiteralPath $photoshopTarget -Recurse -Force | ForEach-Object { SafePath $_.FullName }
+                [void](Contained (Join-Path $backup 'photoshop') $stateRoot)
+                Move-Item -LiteralPath $photoshopTarget -Destination (Join-Path $backup 'photoshop'); $photoshopOldMoved=$true
+            }
+            Move-Item -LiteralPath (Join-Path $stage 'photoshop') -Destination $photoshopTarget; $photoshopNewMoved=$true
+        }
         if ($hadMaintenance) {
             Get-ChildItem -LiteralPath $maintenance -Recurse -Force | ForEach-Object { SafePath $_.FullName }
             Move-Item -LiteralPath $maintenance -Destination (Join-Path $backup 'maintenance'); $maintenanceMoved=$true
@@ -170,13 +191,16 @@ function Install-Payload([string]$Source,$Manifest) {
             }
             New-ItemProperty -LiteralPath $registryKey -Name NoModify -Value 1 -PropertyType DWord -Force | Out-Null
             New-ItemProperty -LiteralPath $registryKey -Name NoRepair -Value 1 -PropertyType DWord -Force | Out-Null
-            New-ItemProperty -LiteralPath $registryKey -Name EstimatedSize -Value 175000 -PropertyType DWord -Force | Out-Null
+            New-ItemProperty -LiteralPath $registryKey -Name EstimatedSize -Value $(if($includePhotoshop){350000}else{175000}) -PropertyType DWord -Force | Out-Null
         }
         Log ('Installed v'+$Manifest.version+' into '+$target)
+        if ($includePhotoshop) { Log ('Photoshop suite installed into '+$photoshopTarget) }
         if ($oldMoved -or $maintenanceMoved) { Log ('Previous installation preserved at '+$backup) }
     } catch {
         $cause=$_
         Log 'Installation failed; restoring the previous installation.'
+        if ($photoshopNewMoved) { Remove-OwnedTree $photoshopTarget (Split-Path -Parent $photoshopTarget) }
+        if ($photoshopOldMoved) { Move-Item -LiteralPath (Contained (Join-Path $backup 'photoshop') $stateRoot) -Destination $photoshopTarget }
         if ($newMoved) { Remove-OwnedTree $target (Split-Path -Parent $target) }
         if ($oldMoved) { Move-Item -LiteralPath (Contained (Join-Path $backup 'plugin') $stateRoot) -Destination $target }
         if ($maintenanceInstalled) { Remove-OwnedTree $maintenance (Split-Path -Parent $maintenance) }
@@ -193,7 +217,7 @@ function Install-Payload([string]$Source,$Manifest) {
         throw $cause
     } finally { Remove-OwnedTree $stage $stateRoot }
 }
-function Uninstall-Payload {
+function Uninstall-Component([string]$target) {
     if (-not (Test-Path -LiteralPath $target)) { Log 'The plug-in is already absent.' }
     else {
         $manifest=Read-Manifest $target $false
@@ -210,6 +234,10 @@ function Uninstall-Payload {
         if (@(Get-ChildItem -LiteralPath $target -Force).Count -eq 0) { Remove-Item -LiteralPath $target }
         else { Log ('Unrecognized or modified files were left in '+$target) }
     }
+}
+function Uninstall-Payload {
+    Uninstall-Component $target
+    Uninstall-Component $photoshopTarget
     if (-not $SandboxRoot -and (Test-Path -LiteralPath $registryKey)) { Remove-Item -LiteralPath $registryKey -Force }
     if (-not (Test-Path -LiteralPath (Join-Path $maintenance 'Uninstall.exe'))) {
         $installedScript=Contained (Join-Path $maintenance 'installer-engine.ps1') $maintenance
@@ -228,11 +256,13 @@ try {
         $SandboxRoot=Full $SandboxRoot; SafePath $SandboxRoot
         if (-not (Test-Path -LiteralPath (Join-Path $SandboxRoot '.4x4-installer-test-root') -PathType Leaf)) { throw 'A marked installer test directory is required for SandboxRoot.' }
         $target=Contained (Join-Path $SandboxRoot 'MediaCore\4x4Tools-DLSS5') $SandboxRoot
+        $photoshopTarget=Contained (Join-Path $SandboxRoot 'Photoshop\4x4Tools-DLSS5') $SandboxRoot
         $maintenance=Contained (Join-Path $SandboxRoot 'Maintenance') $SandboxRoot
         $stateRoot=Contained (Join-Path $SandboxRoot 'State') $SandboxRoot
     } else {
         $programFiles=[Environment]::GetFolderPath('ProgramFiles')
         $target=Join-Path $programFiles 'Adobe\Common\Plug-ins\7.0\MediaCore\4x4Tools-DLSS5'
+        $photoshopTarget=Join-Path ([Environment]::GetFolderPath('CommonProgramFiles')) 'Adobe\Plug-Ins\CC\4x4Tools-DLSS5'
         $maintenance=Join-Path $programFiles '4x4-Tools\DLSS-5'
         $stateRoot=Join-Path ([Environment]::GetFolderPath('CommonApplicationData')) '4x4-Tools\DLSS-5'
         if ($Action -eq 'Validate') { $stateRoot=Join-Path ([IO.Path]::GetTempPath()) '4x4-Tools-DLSS-5-Validation' }
@@ -242,7 +272,7 @@ try {
             Assert-Closed
         }
     }
-    SafePath $target; SafePath $maintenance; SafePath $stateRoot
+    SafePath $target; SafePath $maintenance; SafePath $stateRoot; SafePath $photoshopTarget
     $logDir=Join-Path $stateRoot 'Logs'; SafePath $logDir
     New-Item -ItemType Directory -Force -Path $logDir | Out-Null
     $logPath=Join-Path $logDir ($Action+'-'+$session+'.log')
@@ -255,13 +285,13 @@ try {
         if ($Action -eq 'Install' -and -not $SandboxRoot) {
             $adobe=Join-Path ([Environment]::GetFolderPath('ProgramFiles')) 'Adobe'
             $hosts=@(Get-ChildItem -LiteralPath $adobe -Directory -ErrorAction SilentlyContinue | Where-Object {
-                (Test-Path -LiteralPath (Join-Path $_.FullName 'Support Files\AfterFX.exe')) -or (Test-Path -LiteralPath (Join-Path $_.FullName 'Adobe Premiere Pro.exe'))
+                (Test-Path -LiteralPath (Join-Path $_.FullName 'Support Files\AfterFX.exe')) -or (Test-Path -LiteralPath (Join-Path $_.FullName 'Adobe Premiere Pro.exe')) -or (Test-Path -LiteralPath (Join-Path $_.FullName 'Photoshop.exe'))
             })
             # Custom Creative Cloud locations can still use the canonical shared MediaCore directory.
             $installedAdobe=@(Get-ChildItem 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall' -ErrorAction SilentlyContinue | Get-ItemProperty -ErrorAction SilentlyContinue | Where-Object {
-                $_.PSObject.Properties['DisplayName'] -and $_.DisplayName -match 'Adobe (After Effects|Premiere Pro)'
+                $_.PSObject.Properties['DisplayName'] -and $_.DisplayName -match 'Adobe (After Effects|Premiere Pro|Photoshop)'
             })
-            if (-not $hosts.Count -and -not $installedAdobe.Count) { throw 'Install After Effects or Premiere Pro before installing this plug-in.' }
+            if (-not $hosts.Count -and -not $installedAdobe.Count) { throw 'Install After Effects, Premiere Pro or Photoshop before installing this suite.' }
         }
         [void](Check-Gpu $PackageDir)
         if ($Action -eq 'Install') { Install-Payload $PackageDir $manifest }
@@ -280,6 +310,9 @@ try {
         } catch { Write-Host 'A setup log could not be created.' }
     }
     Log ('ERROR: '+$failure.Exception.Message)
+    if ($ReportPath) {
+        try { $report=Full $ReportPath; SafePath $report; [IO.File]::WriteAllText($report,$failure.Exception.Message,[Text.Encoding]::Unicode) } catch { }
+    }
     if ($logPath) { Write-Host ('Log: '+$logPath) }
     exit 1
 } finally {

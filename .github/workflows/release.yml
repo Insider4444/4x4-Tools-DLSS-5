@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: Insider4444/4x4-Tools-DLSS-5-build-dependencies
-          ref: c2464b7cf5ee285c9f1b21a765f975a15c5fc9e5
+          ref: 5a074d1a43982be68e3a8baa70c78da3f55803cd
           ssh-key: ${{ secrets.SDK_DEPLOY_KEY }}
           persist-credentials: false
           path: .local/ci-sdk

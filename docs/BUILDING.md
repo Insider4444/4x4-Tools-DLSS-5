@@ -2,57 +2,50 @@
 
 ## Dependencies
 
-- Windows x64; Visual Studio 2022/2026 C++ desktop Build Tools and a Windows SDK; CMake 3.24 or later.
-- A separately obtained Adobe After Effects SDK containing `Headers`, `Util` and `Resources/PiPLtool.exe`. v1.0 was built with the 23.5 interfaces (SDK 13.29). The script accepts either that directory or an SDK root with `Examples` beneath it.
-- NVIDIA DLSS SDK, build tested at commit `a291cc7d2cc642a51566f3dfd5376f635cd1b284`, containing `include` and `lib/Windows_x86_64/x64/nvsdk_ngx_s.lib`.
-- A compatible, separately obtained `nvngx_dlssnr.dll`. The published v1.0 runtime hash/provenance is in THIRD-PARTY-NOTICES.md. Obtain applicable rights before redistributing any SDK or runtime material.
+Windows x64, Visual Studio 2022/2026 Desktop development with C++, a Windows SDK and CMake 3.24+ are required. Configure these separately obtained dependencies:
 
-The repository deliberately contains no proprietary SDK development files. Put dependencies outside the repository or in the ignored `dependencies` directory. Do not publish SDK headers, development libraries or tools with source commits.
+| Setting | Expected contents |
+| --- | --- |
+| AdobeSdk | After Effects SDK `Headers`, `Util`, `Resources/PiPLtool.exe` (or its `Examples` directory) |
+| PhotoshopSdk | Photoshop 2026 C++ SDK `photoshopapi` headers; retain Adobe's SDK license |
+| Lcms | Little CMS 2.19.1 source root with `src` and `include` |
+| NgxSdk | NVIDIA DLSS SDK headers and `lib/Windows_x86_64/x64/nvsdk_ngx_s.lib` |
+| Runtime | Reviewed community-modified `nvngx_dlssnr.dll`, pinned in `resources/runtime.json` |
+| MakeNsis | NSIS 3.12 `makensis.exe` with its portable distribution |
 
-## Full build
+The public repository contains no proprietary SDK development files. Keep dependencies in ignored `dependencies/` or outside the checkout. Runtime and SDK terms are separate from the source MIT license; see THIRD-PARTY-NOTICES.md.
 
-For portable development and cloud release builds, start with [DEVELOPING.md](DEVELOPING.md). Configure local dependencies once:
+## Build
 
-```powershell
-.\setup-dev.ps1 -AdobeSdk 'D:\SDKs\AfterEffects\Examples' -NgxSdk 'D:\SDKs\DLSS' -Runtime 'D:\Models\nvngx_dlssnr.dll' -MakeNsis 'D:\BuildTools\nsis-3.12\makensis.exe'
-```
-
-Then build from the repository root:
-
-```powershell
-.\scripts\build.ps1 -AdobeSdk 'D:\SDKs\AfterEffects\Examples' -NgxSdk 'D:\SDKs\DLSS' -Runtime 'D:\Models\nvngx_dlssnr.dll'
-```
-
-Environment alternatives: `AE_SDK_BASE_PATH`, `DLSS_SDK_ROOT`, `DLSSNR_RUNTIME_DLL`. The script discovers MSVC/CMake, builds Release with the static C++ runtime and runs six test suites. Output is `build/Release`; logs are `build/*.log`. Full tests require native access to the NVIDIA driver. A restricted process sandbox can make GPU initialization or teardown stall; it is not a substitute for a normal Windows hardware run.
-
-To run only the CPU controls and update-policy tests without proprietary SDKs or NVIDIA hardware:
+The private portable kit already supplies relative dependency paths. Run `setup-dev.ps1` after extraction. For a normal checkout:
 
 ```powershell
-.\scripts\build.ps1 -CpuOnly
+.\setup-dev.ps1 -AdobeSdk 'D:\SDKs\AE\Examples' -PhotoshopSdk 'D:\SDKs\Photoshop\pluginsdk' -Lcms 'D:\SDKs\lcms2-2.19.1' -NgxSdk 'D:\SDKs\DLSS' -Runtime 'D:\Models\nvngx_dlssnr.dll' -MakeNsis 'D:\Tools\nsis-3.12\makensis.exe'
+.\scripts\build.ps1
 ```
 
-Or configure CMake with `-DBUILD_ADOBE_PLUGIN=OFF`. The optional `.github/ci-template.yml` configuration covers the CPU path and script parsing; it does not test Adobe or NVIDIA hardware. To enable GitHub Actions, an account/token with workflow publishing permission can place the template at `.github/workflows/ci.yml`. The separate release.yml workflow is enabled for explicit release builds through deploy-main.ps1. See DEVELOPING.md.
+The default Release build creates both Adobe modules, the support/update helpers and nine test suites. Three suites require a real compatible NVIDIA GPU. Logs are in `build/*.log`; binaries are in `build/Release`. `build.ps1 -CpuOnly` runs the independent CPU tests without Adobe/NVIDIA SDKs. Use a short extraction path such as `C:\Dev` to avoid MSVC path limits.
 
-## Installer and ZIP
+The hosted release Action uses six CPU/host/helper suites; its Windows runner has no NVIDIA device. The private dependency commit is pinned in `.github/workflows/release.yml`. Runtime download URL, archive SHA-256, exact ZIP entry and binary SHA-256 are pinned in `resources/runtime.json`. Both hashes are checked before building. See [DEVELOPING.md](DEVELOPING.md) for GitHub deployment.
 
-Use the official [NSIS 3.12 portable distribution](https://sourceforge.net/projects/nsis/files/NSIS%203/3.12/nsis-3.12.zip/download). The reviewed archive SHA-256 is `56581F90DB321581C5381193D796FFFCF2D24B2F8FED2160A6C6A3BAA67F2C4F`. Keep it outside the source repository. Branding assets are committed; regenerate them with Python 3 and `scripts/make_branding.py` if changed.
+## Installer and manual ZIP
 
 ```powershell
-.\scripts\package.ps1 -MakeNsis 'D:\BuildTools\nsis-3.12\makensis.exe'
+.\publish-release.ps1
 ```
 
-The script builds a private staging package, creates a manifest with SHA-256 for every payload file, compiles setup and creates the ZIP plus SHA256SUMS.txt in `dist`. It refuses to overwrite existing release artifacts. It also refuses a runtime that does not match the reviewed v1.0 hash. Update notices, distribution authorization and hardware validation before changing that pin.
+This builds/tests locally, packages the EXE and manual ZIP, and verifies the compiled installer without publishing. For packaging alone after a matching full build, use `scripts/package.ps1`. It refuses stale build receipts or an unreviewed runtime. Paths are recorded in `build/package-result.json`; artifacts use unique directories under `dist/`.
 
-Run `tests/installer_test.ps1 -PackageDir <staging-package>` to exercise validation, installation, upgrade backups, uninstall and tamper/path rejection; add `-IncludeTimeout` for the 60-second hung-checker scenario. Run `tests/setup_exe_test.ps1 -SetupExe <exe-path> -Zip <zip-path>` to test the compiled installer, compare EXE/ZIP payloads and exercise the self-removing uninstaller. These use isolated marked directories and do not alter Adobe's installed plug-in or Windows uninstall registration. The compiled test keeps its child at the caller's privilege level because no elevated writes are needed in the marked folder. Developer validation can also use `/S /VALIDATEONLY`; isolated installation uses `/TESTROOT=<marked-local-test-directory>`. These switches do not certify actual host performance.
+The public ZIP contains only `README.txt` and `4x4Tools-DLSS5/` with compiled modules, runtime, helpers, licenses and controls guides. It contains no source, build scripts or SDKs. The EXE embeds its installer engine and uses the identical payload.
 
-The full build also produces `SupportCheck.exe`, which loads the actual adjacent `.aex` and its `runtime` directory. It reports one JSON result and a process exit code. The installer runs it as a child with a 60-second timeout and local diagnostics. Installation never continues after a failed check.
+Run `tests/installer_test.ps1 -PackageDir <package-dir> -IncludeTimeout` for isolated validation, install/upgrade/rollback, tamper rejection, timeout and removal scenarios. Run `tests/setup_exe_test.ps1 -SetupExe <exe> -Zip <zip>` for compiled extraction, actual GPU validation, both Adobe destinations, exact EXE/ZIP hashes and uninstall. `tests/package_layout_test.ps1` validates release layout/version/hashes. These tests use marked workspace directories and do not alter live Adobe folders or Windows uninstall registration.
+
+Setup executes the actual AEX through SupportCheck.exe before displaying installation pages. A failed or timed-out 60-second neural check prevents installation and supplies a reason. This small test establishes that the runtime can execute on that PC; it cannot guarantee every image size or workload.
 
 ## Application verification
 
-`tests/verify_ae_controls.jsx` is an opt-in AE script that refuses to touch an existing project. Generate the synthetic fixture with `tests/compare_ae_controls.py --fixture`, then run the JSX in an empty AE session with file-writing scripts enabled. It renders styles/presets and 8/16/32-bit paths into ignored `artifacts` folders. Compare its exports with `tests/compare_ae_controls.py <render-folder>`. The script assumes English Best Settings/Lossless output templates and does not run automatically in CI.
+`tests/verify_ae_controls.jsx` is an opt-in AE script that refuses an existing project. Generate its fixture with `tests/compare_ae_controls.py --fixture`, run it in an empty AE session, then compare exports with `tests/compare_ae_controls.py <render-folder>`. It assumes English Best Settings/Lossless output templates.
 
-Keep application projects, footage, diagnostics, build outputs and downloaded runtimes out of commits. GitHub's automatic source archives contain only the public repository; users should download the explicit Windows release assets for installation.
+Photoshop invocation uses the scoped event UUID documented in [PHOTOSHOP.md](PHOTOSHOP.md). Validate RGB 8/16/32-bit paths, transparency, selection, presets, cancellation and a high-resolution image in the actual app before release. The native host harness additionally checks buffers, large coordinates and failure paths.
 
-## Versioning
-
-Edit release-config.json for the public version; scripts synchronize installer, manifest and Windows resources. resources/version-state.json keeps Adobe compatibility monotonic after private development builds. See DEVELOPING.md. Preserve parameter disk IDs when updating existing projects.
+Keep projects, footage, diagnostics, build outputs and downloaded runtimes out of commits. Version comes from `release-config.json`; generated resources and installer metadata synchronize automatically. Preserve existing parameter IDs and the monotonic Adobe compatibility counter.

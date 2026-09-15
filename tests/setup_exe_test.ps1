@@ -9,6 +9,7 @@ $expanded=Join-Path $testRoot 'zip'
 New-Item -ItemType Directory -Force -Path $sandbox,$expanded | Out-Null
 Set-Content -LiteralPath (Join-Path $sandbox '.4x4-installer-test-root') -Value 'Isolated compiled installer test.'
 $target=Join-Path $sandbox 'MediaCore\4x4Tools-DLSS5'
+$photoshopTarget=Join-Path $sandbox 'Photoshop\4x4Tools-DLSS5'
 $maintenance=Join-Path $sandbox 'Maintenance'
 function Assert([bool]$Condition,[string]$Message) { if (-not $Condition) { throw $Message } }
 function Run-Exe([string]$Exe,[string]$Arguments) {
@@ -31,6 +32,7 @@ function Run-Exe([string]$Exe,[string]$Arguments) {
 $testArgument='/TESTROOT="'+$sandbox+'"'
 Run-Exe $SetupExe ('/S /VALIDATEONLY '+$testArgument)
 Assert (-not (Test-Path -LiteralPath $target)) 'Validate-only installed the plug-in.'
+Assert (-not (Test-Path -LiteralPath $photoshopTarget)) 'Validate-only installed the Photoshop plug-in.'
 $logs=Join-Path $sandbox 'State\Logs'
 Assert (@(Get-ChildItem -LiteralPath $logs -Filter 'Validate-*.log').Count -gt 0) 'No successful validation log was produced.'
 Write-Host 'PASS compiled EXE extraction and real GPU validation'
@@ -46,6 +48,8 @@ foreach ($file in $manifest.files) {
     $fromZip=(Get-FileHash -LiteralPath (Join-Path (Join-Path $expanded '4x4Tools-DLSS5') $file.path)).Hash
     $fromExe=(Get-FileHash -LiteralPath (Join-Path $target $file.path)).Hash
     Assert ($fromZip -eq $file.sha256 -and $fromExe -eq $fromZip) ('EXE/ZIP payload mismatch: '+$file.path)
+    $fromPhotoshop=(Get-FileHash -LiteralPath (Join-Path $photoshopTarget $file.path)).Hash
+    Assert ($fromPhotoshop -eq $fromZip) ('Photoshop destination mismatch: '+$file.path)
 }
 # Git checkout enforces CRLF for PS1 files; editor working files can use LF.
 # Compare exact script text after normalizing that checkout-only difference.
@@ -58,6 +62,7 @@ Run-Exe (Join-Path $maintenance 'Uninstall.exe') ('/S '+$testArgument)
 $timer=[Diagnostics.Stopwatch]::StartNew()
 while ((Test-Path -LiteralPath (Join-Path $maintenance 'Uninstall.exe')) -and $timer.Elapsed.TotalSeconds -lt 60) { Start-Sleep -Milliseconds 250 }
 Assert (-not (Test-Path -LiteralPath (Join-Path $target '4x4Tools-DLSS5.aex'))) 'Uninstaller did not remove the owned plug-in.'
+Assert (-not (Test-Path -LiteralPath (Join-Path $photoshopTarget '4x4Tools-DLSS5-Photoshop.8bf'))) 'Uninstaller did not remove the Photoshop plug-in.'
 Assert (-not (Test-Path -LiteralPath $maintenance)) 'Uninstaller did not remove its maintenance files.'
 Assert (@(Get-ChildItem -LiteralPath $logs -Filter 'Uninstall-*.log').Count -gt 0) 'No uninstall log was produced.'
 Write-Host 'PASS compiled uninstaller removes the payload and itself, preserving logs'

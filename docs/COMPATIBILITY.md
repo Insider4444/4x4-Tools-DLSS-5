@@ -1,30 +1,71 @@
-# Compatibility
+# Compatibility — v1.2 suite
 
-## GPU and driver
+Windows x64, Direct3D 12 and an NVIDIA RTX GPU are required. The suite includes
+the community **DLSS NR 310.8.SF-v2** runtime, selected to extend compatibility
+beyond the original RTX 50 implementation. Setup tests the actual packaged
+engine before displaying its installation pages.
 
-| Hardware | v1.0 status |
+| GPU | Evidence and expected behavior |
 | --- | --- |
-| RTX 5070, Windows x64, NVIDIA driver 616.64 | Locally passed neural rendering, styles/presets, shutdown/reinitialization and installer preflight. |
-| Other RTX 50 series | Not individually tested. Installation proceeds only after the bundled runtime passes a real rendering test. |
-| RTX 40 series | Not individually tested. Community implementations report use of compatible modified runtimes; the bundled runtime must pass preflight on the user's card/driver. |
-| RTX 30 series | Not individually tested or promised. Some community implementations require a different FP16 runtime. This release does not bundle that alternative. If this runtime fails, setup stops without replacing the existing plug-in. |
-| Older RTX / RTX workstation models | Not certified. A recognized RTX card must still pass the same runtime test. |
-| NVIDIA GTX, AMD, Intel, software rendering | Not supported by this neural runtime. |
+| RTX 5070, driver 616.64 | Locally verified: AE neural rendering, styles, cleanup and tiled Photoshop 16-bit processing. |
+| Other RTX 50 cards | Community runtime target; each installation must pass its own render test. Not individually tested here. |
+| RTX 40 cards | Community runtime target. Not physically tested by this project; card, driver and free VRAM still matter. |
+| RTX 30 and RTX 20 cards | Community cross-generation target. FP16 paths may be substantially slower. Use smaller Photoshop tiles. Not physically tested by this project. |
+| RTX workstation / laptop cards | An RTX adapter may pass the same check; these models are not individually qualified. Power and VRAM limits affect performance. |
+| GTX, AMD, Intel, CPU-only, macOS | No processing backend in this release. Windows setup stops with the reason if it cannot find a usable RTX adapter. |
 
-Use a current NVIDIA driver suitable for your GPU. A card name alone does not establish model compatibility. The installer enumerates a NVIDIA Direct3D 12 adapter, loads the actual packaged Adobe effect and checks that a 180 × 225 frame is enhanced, alpha remains intact and GPU cleanup succeeds. It allows 60 seconds for the separate checker process. A driver crash, timeout, load failure or unchanged output prevents installation.
+This is a tested RTX 5070 build with broader community runtime coverage, **not
+a certification of every RTX card**. Community game-mod results cannot prove
+that an Adobe workflow will work.
 
-The test needs free GPU memory. Close demanding GPU applications before setup. Passing a small test does not guarantee that 4K/8K projects fit in VRAM or perform quickly. Multiple Adobe processes compete for GPU memory. No game hooks, registry overrides, driver changes or alternate model downloads are applied by this installer.
+## What setup checks
 
-## Adobe applications
+Setup verifies every payload hash, selects a high-performance NVIDIA RTX
+Direct3D 12 adapter, loads the packaged effect and renders a 180 × 225 frame.
+The image must change, alpha must remain intact, and GPU cleanup must succeed.
+The separate checker has a 60-second timeout. Missing files, load errors,
+runtime failures, invalid output and timeouts produce a specific error before
+any Adobe files are replaced. Detailed logs remain available.
 
-AE's effect API is used for both hosts. The build uses the Adobe 23.5 SDK interfaces. Local AE 26.3 application exports and the user's AE/Premiere workflow passed during development; every Adobe version has not been qualified. The host harness covers registration, parameter persistence, SmartFX, concurrent requests and the legacy rendering path.
+The checker and engine use the same adapter preference, avoiding a GTX ahead
+of an RTX in mixed-GPU systems. No drivers, game hooks or registry compatibility
+overrides are installed.
 
-AE buffers can be 8/16/32-bit, but neural processing uses an RGBA8 proxy. Premiere's legacy effect path supports ARGB8; this release does not implement Premiere's native GPU/32-bit pixel-format suite. Linear HDR is experimental. Test a short export in your project color pipeline before a full render.
+Passing this small test establishes basic runtime operation. It cannot guarantee
+that an 8K video frame fits in VRAM or that a large Photoshop image finishes
+quickly. Photoshop's Low VRAM option limits tile size; CPU processing uses a
+512 MiB tile budget plus host, ICC and GPU allocations.
 
-## Community background
+## Adobe hosts
 
-- [NVIDIA's DLSS 5 introduction](https://www.nvidia.com/en-us/geforce/news/dlss-5-3d-guided-neural-rendering/) describes a 3D-guided system. This plug-in has neither real depth nor motion vectors and must not be equated with that complete pipeline.
-- [Resolve DLSS5 upstream](https://github.com/SAOG0721/DaVinci-Resolve-DLSS5) supplies the adapted Feature 18 backend and documents the experimental integration.
-- [DLSS5-Autopilot runtime selection](https://github.com/Kizzuwatnaa/DLSS5-Autopilot/blob/main/core/sources.py) distinguishes architecture-specific runtime choices, including the Ampere FP16 case. These are community findings, not a compatibility certification for this Adobe package.
+| Host | Processing route and limits |
+| --- | --- |
+| After Effects | Adobe effect / SmartFX; 8/16/32-bit host buffers and Multi-Frame Rendering registration. GPU work is serialized per process. Existing parameter IDs remain stable. |
+| Premiere Pro | Legacy Adobe effect route, ARGB8 host processing. Native Premiere GPU / 32-bit pixel-format suites are not implemented. |
+| Photoshop 2026+ on Windows | Native .8bf filter, JSON PiPL registration, RGB 8/16/32-bit, large-document coordinates and overlapping tiles. CMYK, indexed color and individual-channel filtering are unavailable. |
 
-Compatibility statements were reviewed for this v1.0 release on 2026-09-08. File hashes, actual tests and reported failures take precedence over broad community claims.
+The model uses an 8-bit proxy. Photoshop preserves finer original information
+through float residual reconstruction; this is not native 16/32-bit model
+inference. HDR is experimental. ICC conversion retains the document RGB profile;
+32-bit images require a matrix RGB profile. Dimensions and transparency stay
+unchanged. See [Photoshop guide](PHOTOSHOP.md).
+
+## NVIDIA DLSS 5 and this integration
+
+[NVIDIA's DLSS 5 documentation](https://www.nvidia.com/en-us/geforce/news/dlss-5-3d-guided-neural-rendering/)
+describes 3D-guided neural rendering integrated with game data. This independent
+Adobe adaptation uses existing images and video: it receives no real scene depth
+or engine motion vectors and resets neural history per frame. It cannot promise
+the temporal consistency of an integrated game pipeline. It performs enhancement
+at the input resolution, not upscaling or frame generation. Review motion, text,
+faces and fine patterns before delivery.
+
+Research checked for this release on 2026-09-10:
+
+- [Resolve DLSS5 upstream](https://github.com/SAOG0721/DaVinci-Resolve-DLSS5): origin of the adapted Feature 18 engine.
+- [DLSS5Kit architecture table](https://github.com/UgurInanc12/DLSS5Kit#what-it-verifies-rather-than-assumes): identifies SF-v2 for RTX 20–50 and explains machine code versus portable PTX.
+- [OptiScaler DLSS NR multipass project](https://github.com/wilsjo2/OptiScaler-DLSSNR-PreSR-Multipass): cross-generation runtime paths and older-generation performance differences.
+- [Exact runtime release](https://github.com/RankFTW/rhi-repo/releases/tag/dlssnr-310.8.SF-v2): archive and binary hashes are pinned in [runtime.json](../resources/runtime.json).
+
+These are implementation references and community findings, not NVIDIA
+endorsement or a substitute for the actual render check.

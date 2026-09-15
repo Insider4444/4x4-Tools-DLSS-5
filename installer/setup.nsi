@@ -35,11 +35,11 @@ BrandingText "4x4Tools-DLSS5-win | v${VERSION}"
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_BITMAP "..\assets\installer-header.bmp"
 !define MUI_HEADERIMAGE_RIGHT
-!define MUI_WELCOMEPAGE_TITLE "Bring your footage into focus."
-!define MUI_WELCOMEPAGE_TEXT "Install 4x4-Tools DLSS 5 for After Effects and Premiere Pro.$\r$\n$\r$\nEight editable presets, three neural styles and precise finishing controls.$\r$\n$\r$\nSetup verifies the included runtime on your GPU before replacing any plug-in files. Save your work and close both Adobe apps before continuing.$\r$\n$\r$\nWindows x64 and a compatible NVIDIA RTX GPU are required."
+!define MUI_WELCOMEPAGE_TITLE "NVIDIA-based neural enhancement."
+!define MUI_WELCOMEPAGE_TEXT "One 4x4Tools DLSS5 suite for After Effects, Premiere Pro and Photoshop.$\r$\n$\r$\nShape lighting, texture and detail with editable presets and preservation controls. Photoshop processes high-resolution images at their original size.$\r$\n$\r$\nYour GPU has passed the initial runtime check. Save your work and close Adobe applications before installation.$\r$\n$\r$\nIndependent community integration. Not an official NVIDIA or Adobe product."
 !define MUI_LICENSEPAGE_TEXT_TOP "Review the plug-in license and separate third-party runtime terms."
 !define MUI_FINISHPAGE_TITLE "4x4-Tools setup completed"
-!define MUI_FINISHPAGE_TEXT "Reopen After Effects or Premiere Pro and search Effects for 4x4Tools-DLSS5.$\r$\n$\r$\nStart with the Natural balance footage preset and use the original / neural wipe to compare.$\r$\n$\r$\nSetup logs and previous-version backups are stored in ProgramData\4x4-Tools\DLSS-5."
+!define MUI_FINISHPAGE_TEXT "AE / Premiere: search Effects for 4x4Tools-DLSS5.$\r$\nPhotoshop 2026+: Filter > 4x4Tools > DLSS5 - Image Enhancement.$\r$\n$\r$\nStart with Natural balance and compare the original before applying.$\r$\n$\r$\nSetup logs and previous-version backups: ProgramData\4x4-Tools\DLSS-5."
 !define MUI_FINISHPAGE_LINK "Read the controls and installation guide"
 !define MUI_FINISHPAGE_LINK_LOCATION "https://github.com/Insider4444/4x4-Tools-DLSS-5#readme"
 !define MUI_ABORTWARNING
@@ -56,6 +56,7 @@ Var TestRoot
 Var TestArgument
 Var ValidateOnly
 Var PsExe
+Var CompatibilityReason
 
 Function .onInit
  ${IfNot} ${RunningX64}
@@ -76,14 +77,32 @@ Function .onInit
  ${IfNot} ${Errors}
    StrCpy $ValidateOnly "yes"
  ${EndIf}
-FunctionEnd
-
-Section "Install 4x4-Tools" SEC_MAIN
  InitPluginsDir
  SetOutPath "$PLUGINSDIR\payload"
  File /r "${PACKAGE}\payload\*.*"
  SetOutPath "$PLUGINSDIR"
  File "installer-engine.ps1"
+ ; Compatibility is checked before the welcome/license/install pages and before
+ ; creating or changing any Adobe or maintenance files.
+ nsExec::ExecToStack '"$PsExe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PLUGINSDIR\installer-engine.ps1" -Action Validate -PackageDir "$PLUGINSDIR\payload" -ReportPath "$PLUGINSDIR\compatibility.txt"$TestArgument'
+ Pop $0
+ Pop $1
+ ${If} $0 != 0
+   StrCpy $CompatibilityReason "The compatibility checker could not complete. Check your NVIDIA driver and download the complete installer again."
+   ClearErrors
+   FileOpen $2 "$PLUGINSDIR\compatibility.txt" r
+   ${IfNot} ${Errors}
+     FileReadUTF16LE $2 $CompatibilityReason
+     FileClose $2
+   ${EndIf}
+   MessageBox MB_ICONSTOP "4x4Tools DLSS5 cannot install on this system.$\r$\n$\r$\n$CompatibilityReason$\r$\n$\r$\nNo Adobe plug-in files were changed." /SD IDOK
+   SetErrorLevel 1
+   Abort
+ ${EndIf}
+FunctionEnd
+
+Section "Install 4x4-Tools" SEC_MAIN
+ SetOutPath "$PLUGINSDIR"
  WriteUninstaller "$PLUGINSDIR\Uninstall.exe"
  ${If} $ValidateOnly == "yes"
    nsExec::ExecToLog '"$PsExe" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$PLUGINSDIR\installer-engine.ps1" -Action Validate -PackageDir "$PLUGINSDIR\payload"$TestArgument'

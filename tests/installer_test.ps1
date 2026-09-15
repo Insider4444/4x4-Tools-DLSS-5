@@ -12,6 +12,7 @@ Copy-Item -Path (Join-Path $PackageDir 'payload\*') -Destination $payload -Recur
 $engine=Join-Path $repo 'installer\installer-engine.ps1'
 $shell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $target=Join-Path $sandbox 'MediaCore\4x4Tools-DLSS5'
+$photoshopTarget=Join-Path $sandbox 'Photoshop\4x4Tools-DLSS5'
 $maintenance=Join-Path $sandbox 'Maintenance'
 $results=New-Object Collections.Generic.List[string]
 function Assert([bool]$Condition,[string]$Message) { if (-not $Condition) { throw $Message } }
@@ -63,6 +64,8 @@ Assert (-not (Test-Path -LiteralPath $target)) 'Validation changed the installat
 [void](Run 'Install' 0 'fresh-install')
 $hash=(Get-FileHash -LiteralPath (Join-Path $target '4x4Tools-DLSS5.aex')).Hash
 Assert ($hash -eq (Get-FileHash -LiteralPath (Join-Path $payload '4x4Tools-DLSS5.aex')).Hash) 'Installed module differs.'
+$psHash=(Get-FileHash -LiteralPath (Join-Path $photoshopTarget '4x4Tools-DLSS5-Photoshop.8bf')).Hash
+Assert ($psHash -eq (Get-FileHash -LiteralPath (Join-Path $payload '4x4Tools-DLSS5-Photoshop.8bf')).Hash) 'Photoshop module differs.'
 Set-Content -LiteralPath (Join-Path $target 'retained-note.txt') -Value 'Preserve user additions during upgrade/rollback.'
 
 # Deliberately deny rename of the old maintenance directory after plug-in staging.
@@ -73,6 +76,7 @@ try {
     Assert ($result -match 'restoring the previous installation') 'Rollback was not reached.'
     Assert (Test-Path -LiteralPath (Join-Path $target 'retained-note.txt')) 'Rollback lost an original file.'
     Assert ((Get-FileHash -LiteralPath (Join-Path $target '4x4Tools-DLSS5.aex')).Hash -eq $hash) 'Rollback changed the prior module.'
+    Assert ((Get-FileHash -LiteralPath (Join-Path $photoshopTarget '4x4Tools-DLSS5-Photoshop.8bf')).Hash -eq $psHash) 'Rollback changed Photoshop.'
 } finally { $lock.Dispose() }
 [void](Run 'Install' 0 'upgrade-with-backup')
 $backups=@(Get-ChildItem -LiteralPath (Join-Path $sandbox 'State\Backups') -Filter 'retained-note.txt' -Recurse)
@@ -104,6 +108,7 @@ Add-Content -LiteralPath (Join-Path $target 'CONTROLS.md') -Value 'User edited d
 Set-Content -LiteralPath (Join-Path $target 'user-file.txt') -Value 'Must survive uninstall.'
 [void](Run 'Uninstall' 0 'uninstall-preserves-foreign-and-modified-files')
 Assert (-not (Test-Path -LiteralPath (Join-Path $target '4x4Tools-DLSS5.aex'))) 'Uninstall left its unmodified module.'
+Assert (-not (Test-Path -LiteralPath (Join-Path $photoshopTarget '4x4Tools-DLSS5-Photoshop.8bf'))) 'Uninstall left Photoshop installed.'
 Assert (Test-Path -LiteralPath (Join-Path $target 'user-file.txt')) 'Uninstall deleted a foreign file.'
 Assert (Test-Path -LiteralPath (Join-Path $target 'CONTROLS.md')) 'Uninstall deleted a modified file.'
 @{status='passed';tests=@($results);root=$testRoot;created=(Get-Date -Format o)} | ConvertTo-Json -Depth 4 |

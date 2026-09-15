@@ -1,6 +1,6 @@
 #Requires -Version 5.1
 [CmdletBinding()]
-param([string]$AdobeSdk,[string]$NgxSdk,[string]$Runtime,[string]$MakeNsis)
+param([string]$AdobeSdk,[string]$PhotoshopSdk,[string]$Lcms,[string]$NgxSdk,[string]$Runtime,[string]$MakeNsis)
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'scripts\common.ps1')
 $config=Read-ReleaseConfig
@@ -18,9 +18,11 @@ if (-not (Test-Path -LiteralPath (Join-Path $PSScriptRoot '.git'))) {
     Write-Host 'Git history restored. Your working files were preserved.'
 }
 $file=Join-Path $PSScriptRoot '.local\build-settings.json'
-$settings=[pscustomobject]@{AdobeSdk='dependencies/ae-sdk';NgxSdk='dependencies/nvidia-dlss';Runtime='dependencies/runtime/nvngx_dlssnr.dll';MakeNsis='dependencies/nsis/makensis.exe'}
+$defaults=@{AdobeSdk='dependencies/ae-sdk';PhotoshopSdk='dependencies/photoshop-sdk/pluginsdk';Lcms='dependencies/lcms/lcms2-2.19.1';NgxSdk='dependencies/nvidia-dlss';Runtime='dependencies/runtime/nvngx_dlssnr.dll';MakeNsis='dependencies/nsis/makensis.exe'}
+$settings=[pscustomobject]$defaults
 if (Test-Path -LiteralPath $file) { $settings=Get-Content -LiteralPath $file -Raw -Encoding UTF8 | ConvertFrom-Json }
-foreach ($field in @('AdobeSdk','NgxSdk','Runtime','MakeNsis')) {
+foreach ($field in @('AdobeSdk','PhotoshopSdk','Lcms','NgxSdk','Runtime','MakeNsis')) {
+    if (-not $settings.PSObject.Properties[$field]) { Add-Member -InputObject $settings -NotePropertyName $field -NotePropertyValue $defaults[$field] }
     $value=Get-Variable -Name $field -ValueOnly
     if ($value) { $settings.$field=$value }
 }
