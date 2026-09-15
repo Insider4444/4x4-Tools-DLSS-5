@@ -23,7 +23,7 @@
         "Duotone": false,
         "GrayScale": false
       },
-      "EnableInfo": "in (PSHOP_ImageMode, RGBMode, RGB48Mode, RGB96Mode) && in (PSHOP_ImageDepth, 8, 16, 32)",
+      "EnableInfo": "in (PSHOP_ImageMode, RGBMode, RGB48Mode, RGB96Mode)",
       "PlugInMaxSize": [
         300000,
         300000
