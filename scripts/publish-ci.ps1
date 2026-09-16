@@ -29,7 +29,11 @@ if ($existing.Code -eq 0) {
     [void](Gh @('release','create',$tag,'--repo',$config.repository,'--target',$head,'--draft','--title',($config.releaseName+' '+$tag),'--notes-file',$preparedNotes))
 }
 [void](Gh (@('release','upload',$tag,'--repo',$config.repository,'--clobber')+$assets))
-$remote=(Gh @('api',('repos/'+$config.repository+'/releases/tags/'+$tag))).Text | ConvertFrom-Json
+# The tag endpoint only resolves published releases. Resolve this authenticated
+# draft with gh first, then fetch its numeric REST URL for asset digests.
+$draftUrl=(Gh @('release','view',$tag,'--repo',$config.repository,'--json','apiUrl','--jq','.apiUrl')).Text.Trim()
+if ($draftUrl -notmatch ('^https://api\.github\.com/repos/'+[regex]::Escape($config.repository)+'/releases/[0-9]+$')) { throw 'Unexpected draft API URL.' }
+$remote=(Gh @('api',$draftUrl)).Text | ConvertFrom-Json
 if (-not $remote.draft -or @($remote.assets).Count -ne 3) { throw 'Draft must contain exactly the installer, manual ZIP and SHA256SUMS.txt. Review unexpected assets before publishing.' }
 foreach ($asset in $assets) {
     $match=@($remote.assets | Where-Object { $_.name -ceq [IO.Path]::GetFileName($asset) })
