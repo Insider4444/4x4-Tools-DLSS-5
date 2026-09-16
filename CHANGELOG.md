@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0 — 2026-09-15
+## 1.2.0 — 2026-09-16
 
 - One Windows suite for After Effects, Premiere Pro and the new Photoshop native filter.
 - Photoshop RGB 8/16/32-bit images, ICC conversion, preserved transparency and dimensions, large-document coordinates and bounded overlapping tile processing.

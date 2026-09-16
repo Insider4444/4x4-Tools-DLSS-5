@@ -64,3 +64,11 @@ Earlier AE application comparisons above describe the preceding video implementa
 The final local EXE/ZIP passed all ten installer scenarios: concurrent setup rejection, real GPU validation, fresh install, rollback on failed commit, upgrade backups, tampered files, path traversal, unsupported GPU, a 60-second hung checker, and uninstall preserving foreign/modified files. The compiled EXE separately passed extraction/preflight, installation to both marked Adobe destinations, exact EXE/ZIP payload hashes and self-removing uninstall. No live Adobe folders were changed by these isolated tests.
 
 Photoshop dialog verification passed: a full-size crop rendered, Original switched the displayed pixels, selecting Strong enhancement changed intensity from 75 to 125 and updated style/tone/structure, all four tabs exposed their controls, and Apply completed. Owner-drawn preview painting keeps the cached crop visible across dialog redraws. Actual RGB8 selection/transparency exports were compared pixel-for-pixel: alpha and pixels outside the selection were exact, while RGB inside the selection changed.
+
+### Final verification (2026-09-16)
+
+After removing a redundant depth expression from Photoshop's PiPL enablement rule, the installed filter passed the actual Photoshop 27.11.0 application test for RGB8, RGB16 and RGB32. Each 1089 x 613 document processed with a 512-pixel tile core and retained its dimensions and depth; outputs saved as PNG8, PNG16 and floating-point TIFF respectively. The repeatable opt-in script is `tests/verify_photoshop.jsx`.
+
+The final-source GitHub build succeeded: https://github.com/Insider4444/4x4-Tools-DLSS-5/actions/runs/34964924065. Its downloaded installer and ZIP passed real GPU preflight, isolated installation to both Adobe destinations, exact payload equality and self-removing uninstall.
+
+The private developer archive passed verification of all 2,054 manifest files. A separate extraction restored its bundled Git history and rebuilt using bundled dependency paths; all nine local suites passed in 16.18 seconds. The matching local debug build was installed and verified in both Adobe shared plug-in destinations.
